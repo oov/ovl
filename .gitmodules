@@ -1,0 +1,30 @@
+[submodule "3rd/ovbase"]
+	path = src/3rd/ovbase
+	url = https://github.com/oov/ovbase
+[submodule "3rd/ovutil"]
+	path = src/3rd/ovutil
+	url = https://github.com/oov/ovutil
+[submodule "3rd/ogg"]
+	path = src/3rd/ogg
+	url = https://github.com/xiph/ogg
+[submodule "3rd/opus"]
+	path = src/3rd/opus
+	url = https://github.com/xiph/opus
+[submodule "3rd/opusfile"]
+	path = src/3rd/opusfile
+	url = https://github.com/xiph/opusfile
+[submodule "3rd/vorbis"]
+	path = src/3rd/vorbis
+	url = https://github.com/xiph/vorbis
+[submodule "3rd/flac"]
+	path = src/3rd/flac
+	url = https://github.com/xiph/flac
+[submodule "3rd/r8brain-free-src"]
+	path = src/3rd/r8brain-free-src
+	url = https://github.com/avaneev/r8brain-free-src
+[submodule "3rd/signalsmith-stretch"]
+	path = src/3rd/signalsmith-stretch
+	url = https://github.com/Signalsmith-Audio/signalsmith-stretch
+[submodule "3rd/minimp3"]
+	path = src/3rd/minimp3
+	url = https://github.com/lieff/minimp3

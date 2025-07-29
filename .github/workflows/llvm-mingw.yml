@@ -1,0 +1,25 @@
+name: llvm-mingw
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-test:
+    strategy:
+      matrix:
+        os:
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build
+        shell: bash
+        run: |
+          ARCHDIR=i686 CMAKE_C_COMPILER=i686-w64-mingw32-clang bash -x build.bash --no-format --debug
+          ARCHDIR=x86_64 CMAKE_C_COMPILER=x86_64-w64-mingw32-clang bash -x build.bash --no-format --debug
