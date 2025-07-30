@@ -2,6 +2,10 @@
 
 #include <ovarray.h>
 
+#ifndef COBJMACROS
+#  define COBJMACROS
+#endif
+
 #include <shlobj.h>
 
 static NODISCARD error get_temp_directory(wchar_t **const path, size_t const extra_space, size_t *const len) {
@@ -116,7 +120,7 @@ NODISCARD error ovl_path_select_file(HWND const window,
     err = errhr(hr);
     goto cleanup;
   }
-  hr = pfd->lpVtbl->SetTitle(pfd, title);
+  hr = IFileDialog_SetTitle(pfd, title);
   if (FAILED(hr)) {
     err = errhr(hr);
     goto cleanup;
@@ -140,27 +144,27 @@ NODISCARD error ovl_path_select_file(HWND const window,
     fs[i].pszSpec = f;
     f += wcslen(f) + 1;
   }
-  hr = pfd->lpVtbl->SetFileTypes(pfd, (UINT)filter_count, fs);
+  hr = IFileDialog_SetFileTypes(pfd, (UINT)filter_count, fs);
   if (FAILED(hr)) {
     err = errhr(hr);
     goto cleanup;
   }
-  hr = pfd->lpVtbl->SetClientGuid(pfd, client_id);
+  hr = IFileDialog_SetClientGuid(pfd, client_id);
   if (FAILED(hr)) {
     err = errhr(hr);
     goto cleanup;
   }
-  hr = pfd->lpVtbl->Show(pfd, window);
+  hr = IFileDialog_Show(pfd, window);
   if (FAILED(hr)) {
     err = errhr(hr);
     goto cleanup;
   }
-  hr = pfd->lpVtbl->GetResult(pfd, &psiResult);
+  hr = IFileDialog_GetResult(pfd, &psiResult);
   if (FAILED(hr)) {
     err = errhr(hr);
     goto cleanup;
   }
-  hr = psiResult->lpVtbl->GetDisplayName(psiResult, SIGDN_FILESYSPATH, &pszPath);
+  hr = IShellItem_GetDisplayName(psiResult, SIGDN_FILESYSPATH, &pszPath);
   if (FAILED(hr)) {
     err = errhr(hr);
     goto cleanup;
@@ -177,14 +181,14 @@ cleanup:
     pszPath = NULL;
   }
   if (psiResult) {
-    psiResult->lpVtbl->Release(psiResult);
+    IShellItem_Release(psiResult);
     psiResult = NULL;
   }
   if (fs) {
     OV_ARRAY_DESTROY(&fs);
   }
   if (pfd) {
-    pfd->lpVtbl->Release(pfd);
+    IFileDialog_Release(pfd);
     pfd = NULL;
   }
   return err;
@@ -204,37 +208,37 @@ NODISCARD error ovl_path_select_folder(HWND const window,
     goto cleanup;
   }
   DWORD dwOptions;
-  hr = pfd->lpVtbl->GetOptions(pfd, &dwOptions);
+  hr = IFileDialog_GetOptions(pfd, &dwOptions);
   if (FAILED(hr)) {
     err = errhr(hr);
     goto cleanup;
   }
-  hr = pfd->lpVtbl->SetOptions(pfd, dwOptions | FOS_PICKFOLDERS);
+  hr = IFileDialog_SetOptions(pfd, dwOptions | FOS_PICKFOLDERS);
   if (FAILED(hr)) {
     err = errhr(hr);
     goto cleanup;
   }
-  hr = pfd->lpVtbl->SetTitle(pfd, title);
+  hr = IFileDialog_SetTitle(pfd, title);
   if (FAILED(hr)) {
     err = errhr(hr);
     goto cleanup;
   }
-  hr = pfd->lpVtbl->SetClientGuid(pfd, client_id);
+  hr = IFileDialog_SetClientGuid(pfd, client_id);
   if (FAILED(hr)) {
     err = errhr(hr);
     goto cleanup;
   }
-  hr = pfd->lpVtbl->Show(pfd, window);
+  hr = IFileDialog_Show(pfd, window);
   if (FAILED(hr)) {
     err = errhr(hr);
     goto cleanup;
   }
-  hr = pfd->lpVtbl->GetResult(pfd, &psiResult);
+  hr = IFileDialog_GetResult(pfd, &psiResult);
   if (FAILED(hr)) {
     err = errhr(hr);
     goto cleanup;
   }
-  hr = psiResult->lpVtbl->GetDisplayName(psiResult, SIGDN_FILESYSPATH, &pszPath);
+  hr = IShellItem_GetDisplayName(psiResult, SIGDN_FILESYSPATH, &pszPath);
   if (FAILED(hr)) {
     err = errhr(hr);
     goto cleanup;
@@ -251,11 +255,11 @@ cleanup:
     pszPath = NULL;
   }
   if (psiResult) {
-    psiResult->lpVtbl->Release(psiResult);
+    IShellItem_Release(psiResult);
     psiResult = NULL;
   }
   if (pfd) {
-    pfd->lpVtbl->Release(pfd);
+    IFileDialog_Release(pfd);
     pfd = NULL;
   }
   return err;
