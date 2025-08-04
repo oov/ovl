@@ -63,11 +63,10 @@ NODISCARD error ovl_source_memory_create(void const *const ptr, size_t const sz,
       .size = sz,
   };
   *sp = (void *)sf;
+  sf = NULL;
 cleanup:
-  if (efailed(err)) {
-    if (sf) {
-      destroy((void *)&sf);
-    }
+  if (sf) {
+    destroy((void *)&sf);
   }
   return err;
 }
