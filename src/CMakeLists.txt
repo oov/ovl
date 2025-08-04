@@ -209,6 +209,9 @@ install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ovl DESTINATION include)
 add_executable(test_path path_test.c)
 list(APPEND tests test_path)
 
+add_executable(test_file file_test.c)
+list(APPEND tests test_file)
+
 add_executable(test_decoder_flac audio/decoder/flac_test.c)
 list(APPEND tests test_decoder_flac)
 

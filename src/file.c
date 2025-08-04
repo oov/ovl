@@ -39,7 +39,7 @@ NODISCARD error ovl_file_read(struct ovl_file *const file,
   DWORD bytesRead = 0;
   BOOL result = ReadFile((HANDLE)file, buffer, (DWORD)buffer_bytes, &bytesRead, NULL);
   if (!result) {
-    return errg(err_fail);
+    return errhr(HRESULT_FROM_WIN32(GetLastError()));
   }
   *read = (size_t)bytesRead;
   return eok();
@@ -55,7 +55,7 @@ NODISCARD error ovl_file_write(struct ovl_file *const file,
   DWORD bytesWritten = 0;
   BOOL result = WriteFile((HANDLE)file, buffer, (DWORD)buffer_bytes, &bytesWritten, NULL);
   if (!result) {
-    return errg(err_fail);
+    return errhr(HRESULT_FROM_WIN32(GetLastError()));
   }
   *written = (size_t)bytesWritten;
   return eok();
@@ -80,7 +80,7 @@ NODISCARD error ovl_file_seek(struct ovl_file *const file, int64_t pos, enum ovl
   }
   BOOL result = SetFilePointerEx((HANDLE)file, (LARGE_INTEGER){.QuadPart = pos}, NULL, convert_seek_method(method));
   if (!result) {
-    return errg(err_fail);
+    return errhr(HRESULT_FROM_WIN32(GetLastError()));
   }
   return eok();
 }
@@ -91,7 +91,7 @@ NODISCARD error ovl_file_tell(struct ovl_file *const file, int64_t *const pos) {
   }
   LARGE_INTEGER li;
   if (!SetFilePointerEx((HANDLE)file, (LARGE_INTEGER){0}, &li, FILE_CURRENT)) {
-    return errg(err_fail);
+    return errhr(HRESULT_FROM_WIN32(GetLastError()));
   }
   *pos = li.QuadPart;
   return eok();
