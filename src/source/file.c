@@ -28,11 +28,13 @@ static size_t read(struct ovl_source *const s, void *const p, uint64_t const off
     return SIZE_MAX;
   }
   struct ovl_file *const file = sf->file;
+  size_t read_size = 0;
+  error err = eok();
   if (sf->pos != offset) {
-    error err = ovl_file_seek(file, (int64_t)offset, ovl_file_seek_method_set);
+    err = ovl_file_seek(file, (int64_t)offset, ovl_file_seek_method_set);
     if (efailed(err)) {
-      ereport(err);
-      return SIZE_MAX;
+      err = ethru(err);
+      goto cleanup;
     }
     sf->pos = offset;
   }
@@ -40,13 +42,17 @@ static size_t read(struct ovl_source *const s, void *const p, uint64_t const off
   if (real_len == 0) {
     return 0;
   }
-  size_t read_size = 0;
-  error err = ovl_file_read(file, p, real_len, &read_size);
+  err = ovl_file_read(file, p, real_len, &read_size);
+  if (efailed(err)) {
+    err = ethru(err);
+    goto cleanup;
+  }
+  sf->pos += read_size;
+cleanup:
   if (efailed(err)) {
     ereport(err);
     return SIZE_MAX;
   }
-  sf->pos += read_size;
   return read_size;
 }
 
@@ -83,13 +89,16 @@ NODISCARD error ovl_source_file_create(NATIVE_CHAR const *const path, struct ovl
   }
   uint64_t sz;
   err = ovl_file_size(sf->file, &sz);
+  if (efailed(err)) {
+    err = ethru(err);
+    goto cleanup;
+  }
   sf->size = sz;
   *sp = (void *)sf;
+  sf = NULL;
 cleanup:
-  if (efailed(err)) {
-    if (sf) {
-      destroy((void *)&sf);
-    }
+  if (sf) {
+    destroy((void *)&sf);
   }
   return err;
 }
