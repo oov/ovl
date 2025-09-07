@@ -28,15 +28,9 @@ static void test_file_open_read_close(void) {
 
 static void test_file_create_write_close(void) {
   wchar_t *temp_path = NULL;
-  error err = ovl_path_get_temp_file(&temp_path, NSTR("ovl_test_write.txt"));
-  if (!TEST_SUCCEEDED_F(err)) {
-    return;
-  }
-
   struct ovl_file *file = NULL;
-  err = ovl_file_create(temp_path, &file);
+  error err = ovl_file_create_temp(NSTR("ovl_test_write.txt"), &file, &temp_path);
   if (!TEST_SUCCEEDED_F(err)) {
-    OV_ARRAY_DESTROY(&temp_path);
     return;
   }
 

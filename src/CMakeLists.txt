@@ -127,12 +127,37 @@ foreach(header ${headers})
 endforeach()
 
 add_library(ovl STATIC
-  # Core files
-  file.c
-  path.c
+  # OS
+  os/get_hinstance.c
+
+  # Dialogs
+  dialog/select_file.c
+  dialog/select_folder.c
+
+  # File I/O
+  file/close.c
+  file/create.c
+  file/create_unique.c
+  file/create_temp.c
+  file/open.c
+  file/read.c
+  file/seek.c
+  file/size.c
+  file/tell.c
+  file/write.c
+
+  # Stream reader
   source/file.c
   source/memory.c
-  
+
+  # Path Utility
+  path/extract_file_name_char.c
+  path/extract_file_name_wchar.c
+  path/find_last_path_sep_char.c
+  path/find_last_path_sep_wchar.c
+  path/get_module_name.c
+  path/get_temp_directory.c
+
   # Tag handling
   audio/tag.c
   audio/tag/id3v2.c
@@ -206,10 +231,10 @@ install(TARGETS ovl
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ovl DESTINATION include)
 
 # Test executables
-add_executable(test_path path_test.c)
+add_executable(test_path path/test.c)
 list(APPEND tests test_path)
 
-add_executable(test_file file_test.c)
+add_executable(test_file file/test.c)
 list(APPEND tests test_file)
 
 add_executable(test_decoder_flac audio/decoder/flac_test.c)

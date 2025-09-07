@@ -23,3 +23,11 @@ NODISCARD error ovl_file_write(struct ovl_file *const file,
 NODISCARD error ovl_file_seek(struct ovl_file *const file, int64_t pos, enum ovl_file_seek_method const method);
 NODISCARD error ovl_file_tell(struct ovl_file *const file, int64_t *const pos);
 NODISCARD error ovl_file_size(struct ovl_file *const file, uint64_t *const size);
+
+NODISCARD error ovl_file_create_unique(NATIVE_CHAR const *const dir,
+                                       NATIVE_CHAR const *const base_name,
+                                       struct ovl_file **const file,
+                                       NATIVE_CHAR **const created_path);
+NODISCARD error ovl_file_create_temp(NATIVE_CHAR const *const base_name,
+                                     struct ovl_file **const file,
+                                     NATIVE_CHAR **const created_path);
