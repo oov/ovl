@@ -8,8 +8,9 @@
 static void test_file_create_temp(void) {
   struct ovl_file *file = NULL;
   wchar_t *path = NULL;
-  error err = ovl_file_create_temp(NSTR("test.txt"), &file, &path);
-  if (TEST_SUCCEEDED_F(err)) {
+  struct ov_error err = {0};
+  bool ok = ovl_file_create_temp(NSTR("test.txt"), &file, &path, &err);
+  if (TEST_CHECK(ok)) {
     TEST_CHECK(file != NULL);
     TEST_CHECK(path != NULL);
     TEST_CHECK(wcsstr(path, NSTR("test_")) != NULL);
@@ -19,6 +20,7 @@ static void test_file_create_temp(void) {
     DeleteFileW(path);
     OV_ARRAY_DESTROY(&path);
   }
+  OV_ERROR_DESTROY(&err);
 }
 
 static void test_path_extract_file_name(void) {

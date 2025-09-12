@@ -10,7 +10,9 @@
  * This is a Windows-specific function used to identify the module handle of a DLL or EXE.
  *
  * @param fn Function pointer to get the HINSTANCE for
- * @return void* HINSTANCE handle of the module, or NULL on error
+ * @param hinstance Output parameter for the HINSTANCE handle
+ * @param err Error information output
+ * @return bool true on success, false on failure
  */
-void *ovl_os_get_hinstance_from_fnptr(void *fn);
+bool ovl_os_get_hinstance_from_fnptr(void *fn, void **hinstance, struct ov_error *const err);
 #endif

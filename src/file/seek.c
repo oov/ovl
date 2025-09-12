@@ -17,16 +17,23 @@ static inline DWORD convert_seek_method(enum ovl_file_seek_method const method) 
   return FILE_BEGIN;
 }
 
-NODISCARD error ovl_file_seek(struct ovl_file *const file, int64_t pos, enum ovl_file_seek_method const method) {
+NODISCARD bool ovl_file_seek(struct ovl_file *const file,
+                             int64_t pos,
+                             enum ovl_file_seek_method const method,
+                             struct ov_error *const err) {
   if (!file || (method != ovl_file_seek_method_set && method != ovl_file_seek_method_cur &&
                 method != ovl_file_seek_method_end)) {
-    return errg(err_invalid_arugment);
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_invalid_argument);
+    return false;
   }
+
   BOOL result = SetFilePointerEx((HANDLE)file, (LARGE_INTEGER){.QuadPart = pos}, NULL, convert_seek_method(method));
   if (!result) {
-    return errhr(HRESULT_FROM_WIN32(GetLastError()));
+    OV_ERROR_SET_HRESULT(err, HRESULT_FROM_WIN32(GetLastError()));
+    return false;
   }
-  return eok();
+
+  return true;
 }
 
 #endif

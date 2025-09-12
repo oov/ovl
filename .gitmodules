@@ -1,9 +1,3 @@
-[submodule "3rd/ovbase"]
-	path = src/3rd/ovbase
-	url = https://github.com/oov/ovbase
-[submodule "3rd/ovutil"]
-	path = src/3rd/ovutil
-	url = https://github.com/oov/ovutil
 [submodule "3rd/ogg"]
 	path = src/3rd/ogg
 	url = https://github.com/xiph/ogg

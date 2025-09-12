@@ -12,15 +12,15 @@ struct source_memory {
 };
 
 static void destroy(struct ovl_source **const sp) {
-  struct source_memory **const sfp = (void *)sp;
+  struct source_memory **const sfp = (struct source_memory **)sp;
   if (!sfp || !*sfp) {
     return;
   }
-  ereport(mem_free(sp));
+  OV_FREE(sp);
 }
 
 static size_t read(struct ovl_source *const s, void *const p, uint64_t const offset, size_t const len) {
-  struct source_memory *const sf = (void *)s;
+  struct source_memory *const sf = (struct source_memory *)s;
   if (!sf || !sf->data || offset > sf->size || len == SIZE_MAX) {
     return SIZE_MAX;
   }
@@ -34,21 +34,26 @@ static size_t read(struct ovl_source *const s, void *const p, uint64_t const off
 }
 
 static uint64_t size(struct ovl_source *const s) {
-  struct source_memory *const sf = (void *)s;
+  struct source_memory *const sf = (struct source_memory *)s;
   if (!sf || !sf->data) {
     return UINT64_MAX;
   }
   return sf->size;
 }
 
-NODISCARD error ovl_source_memory_create(void const *const ptr, size_t const sz, struct ovl_source **const sp) {
+NODISCARD bool ovl_source_memory_create(void const *const ptr,
+                                        size_t const sz,
+                                        struct ovl_source **const sp,
+                                        struct ov_error *const err) {
   if ((!ptr && sz) || !sp) {
-    return errg(err_invalid_arugment);
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_invalid_argument);
+    return false;
   }
   struct source_memory *sf = NULL;
-  error err = mem(&sf, 1, sizeof(*sf));
-  if (efailed(err)) {
-    err = ethru(err);
+  bool result = false;
+
+  if (!OV_REALLOC(&sf, 1, sizeof(*sf))) {
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_out_of_memory);
     goto cleanup;
   }
   static struct ovl_source_vtable const vtable = {
@@ -62,11 +67,12 @@ NODISCARD error ovl_source_memory_create(void const *const ptr, size_t const sz,
       .pos = 0,
       .size = sz,
   };
-  *sp = (void *)sf;
+  *sp = (struct ovl_source *)sf;
   sf = NULL;
+  result = true;
 cleanup:
   if (sf) {
-    destroy((void *)&sf);
+    destroy((struct ovl_source **)&sf);
   }
-  return err;
+  return result;
 }

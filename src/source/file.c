@@ -10,7 +10,7 @@ struct source_file {
 };
 
 static void destroy(struct ovl_source **const sp) {
-  struct source_file **const sfp = (void *)sp;
+  struct source_file **const sfp = (struct source_file **)sp;
   if (!sfp || !*sfp) {
     return;
   }
@@ -19,59 +19,66 @@ static void destroy(struct ovl_source **const sp) {
     ovl_file_close(sf->file);
     sf->file = NULL;
   }
-  ereport(mem_free(sp));
+  OV_FREE(sp);
 }
 
 static size_t read(struct ovl_source *const s, void *const p, uint64_t const offset, size_t const len) {
-  struct source_file *const sf = (void *)s;
+  struct source_file *const sf = (struct source_file *)s;
   if (!sf || !sf->file || offset > INT64_MAX || len == SIZE_MAX) {
     return SIZE_MAX;
   }
   struct ovl_file *const file = sf->file;
   size_t read_size = 0;
-  error err = eok();
-  if (sf->pos != offset) {
-    err = ovl_file_seek(file, (int64_t)offset, ovl_file_seek_method_set);
-    if (efailed(err)) {
-      err = ethru(err);
+  struct ov_error err = {0};
+  bool success = false;
+  {
+    if (sf->pos != offset) {
+      if (!ovl_file_seek(file, (int64_t)offset, ovl_file_seek_method_set, &err)) {
+        OV_ERROR_ADD_TRACE(&err);
+        goto cleanup;
+      }
+      sf->pos = offset;
+    }
+    size_t const real_len = offset + len > sf->size ? (size_t)(sf->size - offset) : len;
+    if (real_len == 0) {
+      success = true;
       goto cleanup;
     }
-    sf->pos = offset;
+    if (!ovl_file_read(file, p, real_len, &read_size, &err)) {
+      OV_ERROR_ADD_TRACE(&err);
+      goto cleanup;
+    }
+    sf->pos += read_size;
   }
-  size_t const real_len = offset + len > sf->size ? (size_t)(sf->size - offset) : len;
-  if (real_len == 0) {
-    return 0;
-  }
-  err = ovl_file_read(file, p, real_len, &read_size);
-  if (efailed(err)) {
-    err = ethru(err);
-    goto cleanup;
-  }
-  sf->pos += read_size;
+  success = true;
+
 cleanup:
-  if (efailed(err)) {
-    ereport(err);
+  if (!success) {
+    OV_ERROR_REPORT(&err, NULL);
     return SIZE_MAX;
   }
   return read_size;
 }
 
 static uint64_t size(struct ovl_source *const s) {
-  struct source_file *const sf = (void *)s;
+  struct source_file *const sf = (struct source_file *)s;
   if (!sf || !sf->file) {
     return UINT64_MAX;
   }
   return sf->size;
 }
 
-NODISCARD error ovl_source_file_create(NATIVE_CHAR const *const path, struct ovl_source **const sp) {
+NODISCARD bool
+ovl_source_file_create(NATIVE_CHAR const *const path, struct ovl_source **const sp, struct ov_error *const err) {
   if (!path || !sp) {
-    return errg(err_invalid_arugment);
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_invalid_argument);
+    return false;
   }
   struct source_file *sf = NULL;
-  error err = mem(&sf, 1, sizeof(*sf));
-  if (efailed(err)) {
-    err = ethru(err);
+  bool result = false;
+
+  if (!OV_REALLOC(&sf, 1, sizeof(*sf))) {
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_out_of_memory);
     goto cleanup;
   }
   static struct ovl_source_vtable const vtable = {
@@ -82,23 +89,20 @@ NODISCARD error ovl_source_file_create(NATIVE_CHAR const *const path, struct ovl
   *sf = (struct source_file){
       .vtable = &vtable,
   };
-  err = ovl_file_open(path, &sf->file);
-  if (efailed(err)) {
-    err = ethru(err);
+  if (!ovl_file_open(path, &sf->file, err)) {
+    OV_ERROR_ADD_TRACE(err);
     goto cleanup;
   }
-  uint64_t sz;
-  err = ovl_file_size(sf->file, &sz);
-  if (efailed(err)) {
-    err = ethru(err);
+  if (!ovl_file_size(sf->file, &sf->size, err)) {
+    OV_ERROR_ADD_TRACE(err);
     goto cleanup;
   }
-  sf->size = sz;
-  *sp = (void *)sf;
+  *sp = (struct ovl_source *)sf;
   sf = NULL;
+  result = true;
 cleanup:
   if (sf) {
-    destroy((void *)&sf);
+    destroy((struct ovl_source **)&sf);
   }
-  return err;
+  return result;
 }

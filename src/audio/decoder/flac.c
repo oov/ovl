@@ -1,12 +1,13 @@
 #include <ovl/audio/decoder/flac.h>
 
+#include "../tag.h"
+#include "../tag/vorbis_comment.h"
+
 #include <ovl/audio/decoder.h>
 #include <ovl/audio/info.h>
 #include <ovl/source.h>
 
-#include "../../i18n.h"
-#include "../tag.h"
-#include "../tag/vorbis_comment.h"
+#include <ovmo.h>
 
 #ifdef __GNUC__
 #  ifndef __has_warning
@@ -37,7 +38,7 @@ static void convert_samples_1ch(int32_t const *const *const src,
                                 size_t const samples,
                                 float const scale) {
   int32_t const *const s = src[0] + src_offset;
-  float *const d = ASSUME_ALIGNED_16(dst[0]);
+  float *const d = (float *)ASSUME_ALIGNED_16(dst[0]);
   for (size_t i = 0; i < samples; ++i) {
     d[i] = (float)s[i] * scale;
   }
@@ -49,8 +50,8 @@ static void convert_samples_2ch(int32_t const *const *const src,
                                 float const scale) {
   int32_t const *const sl = src[0] + src_offset;
   int32_t const *const sr = src[1] + src_offset;
-  float *const l = ASSUME_ALIGNED_16(dst[0]);
-  float *const r = ASSUME_ALIGNED_16(dst[1]);
+  float *const l = (float *)ASSUME_ALIGNED_16(dst[0]);
+  float *const r = (float *)ASSUME_ALIGNED_16(dst[1]);
   for (size_t i = 0; i < samples; ++i) {
     l[i] = (float)sl[i] * scale;
     r[i] = (float)sr[i] * scale;
@@ -63,7 +64,7 @@ static void convert_samples_multi(int32_t const *const *const src,
                                   size_t const samples,
                                   float const scale) {
   for (size_t c = 0; c < channels; ++c) {
-    float *const aligned_d = ASSUME_ALIGNED_16(dst[c]);
+    float *const aligned_d = (float *)ASSUME_ALIGNED_16(dst[c]);
     for (size_t i = 0; i < samples; ++i) {
       aligned_d[i] = (float)src[c][src_offset + i] * scale;
     }
@@ -102,7 +103,7 @@ struct flac {
 static FLAC__StreamDecoderReadStatus
 read_callback(FLAC__StreamDecoder const *const decoder, FLAC__byte buffer[], size_t *bytes, void *client_data) {
   (void)decoder;
-  struct flac *const ctx = client_data;
+  struct flac *const ctx = (struct flac *)client_data;
   if (ctx->source_pos >= ctx->source_len) {
     return FLAC__STREAM_DECODER_READ_STATUS_END_OF_STREAM;
   }
@@ -118,7 +119,7 @@ read_callback(FLAC__StreamDecoder const *const decoder, FLAC__byte buffer[], siz
 static FLAC__StreamDecoderSeekStatus
 seek_callback(FLAC__StreamDecoder const *const decoder, FLAC__uint64 absolute_byte_offset, void *client_data) {
   (void)decoder;
-  struct flac *const ctx = client_data;
+  struct flac *const ctx = (struct flac *)client_data;
   if (absolute_byte_offset > ctx->source_len) {
     return FLAC__STREAM_DECODER_SEEK_STATUS_ERROR;
   }
@@ -129,7 +130,7 @@ seek_callback(FLAC__StreamDecoder const *const decoder, FLAC__uint64 absolute_by
 static FLAC__StreamDecoderTellStatus
 tell_callback(FLAC__StreamDecoder const *const decoder, FLAC__uint64 *absolute_byte_offset, void *client_data) {
   (void)decoder;
-  struct flac *const ctx = client_data;
+  struct flac *const ctx = (struct flac *)client_data;
   *absolute_byte_offset = ctx->source_pos;
   return FLAC__STREAM_DECODER_TELL_STATUS_OK;
 }
@@ -137,14 +138,14 @@ tell_callback(FLAC__StreamDecoder const *const decoder, FLAC__uint64 *absolute_b
 static FLAC__StreamDecoderLengthStatus
 length_callback(FLAC__StreamDecoder const *const decoder, FLAC__uint64 *stream_length, void *client_data) {
   (void)decoder;
-  struct flac *const ctx = client_data;
+  struct flac *const ctx = (struct flac *)client_data;
   *stream_length = ctx->source_len;
   return FLAC__STREAM_DECODER_LENGTH_STATUS_OK;
 }
 
 static FLAC__bool eof_callback(FLAC__StreamDecoder const *const decoder, void *client_data) {
   (void)decoder;
-  struct flac *const ctx = client_data;
+  struct flac *const ctx = (struct flac *)client_data;
   return ctx->source_pos >= ctx->source_len;
 }
 
@@ -160,11 +161,11 @@ struct get_entry_ctx {
 };
 
 static size_t get_entry(void *const userdata, size_t const n, char const **const entry) {
-  struct get_entry_ctx *ctx = userdata;
+  struct get_entry_ctx *ctx = (struct get_entry_ctx *)userdata;
   if (n >= (size_t)ctx->vc->comments) {
     return 0;
   }
-  *entry = (void *)ctx->vc->comments[n].entry;
+  *entry = (char const *)(void *)ctx->vc->comments[n].entry;
   return (size_t)ctx->vc->comments[n].length;
 }
 
@@ -172,7 +173,7 @@ static void metadata_callback(FLAC__StreamDecoder const *const decoder,
                               FLAC__StreamMetadata const *const metadata,
                               void *const client_data) {
   (void)decoder;
-  struct flac *const ctx = client_data;
+  struct flac *const ctx = (struct flac *)client_data;
   if (metadata->type == FLAC__METADATA_TYPE_STREAMINFO) {
     ctx->info.channels = metadata->data.stream_info.channels;
     ctx->info.sample_rate = metadata->data.stream_info.sample_rate;
@@ -181,10 +182,10 @@ static void metadata_callback(FLAC__StreamDecoder const *const decoder,
   }
   if (metadata->type == FLAC__METADATA_TYPE_VORBIS_COMMENT) {
     FLAC__StreamMetadata_VorbisComment const *vc = &metadata->data.vorbis_comment;
-    error err = ovl_audio_tag_vorbis_comment_read(
-        &ctx->info.tag, (size_t)vc->num_comments, &(struct get_entry_ctx){vc}, get_entry);
-    if (efailed(err)) {
-      ereport(err);
+    struct ov_error err = {0};
+    if (!ovl_audio_tag_vorbis_comment_read(
+            &ctx->info.tag, (size_t)vc->num_comments, &(struct get_entry_ctx){vc}, get_entry, &err)) {
+      OV_ERROR_REPORT(&err, NULL);
     }
     return;
   }
@@ -195,7 +196,7 @@ static FLAC__StreamDecoderWriteStatus write_callback(FLAC__StreamDecoder const *
                                                      FLAC__int32 const *const buffer[],
                                                      void *const client_data) {
   (void)decoder;
-  struct flac *const ctx = client_data;
+  struct flac *const ctx = (struct flac *)client_data;
   if (!ctx || !ctx->buffer) {
     return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
   }
@@ -206,13 +207,14 @@ static FLAC__StreamDecoderWriteStatus write_callback(FLAC__StreamDecoder const *
     size_t const align = 16 / sizeof(float);
     size_t const aligned_samples = (frame->header.blocksize + (align - 1)) & ~(align - 1);
     float *new_buffer = NULL;
-    error err = mem_aligned_alloc(&new_buffer, aligned_samples * ctx->info.channels, sizeof(float), 16);
-    if (efailed(err)) {
-      ereport(err);
+    if (!OV_ALIGNED_ALLOC(&new_buffer, aligned_samples * ctx->info.channels, sizeof(float), 16)) {
+      struct ov_error err = {0};
+      OV_ERROR_SET_GENERIC(&err, ov_error_generic_out_of_memory);
+      OV_ERROR_REPORT(&err, NULL);
       return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
     }
     if (ctx->buffer[0]) {
-      ereport(mem_aligned_free(&ctx->buffer[0]));
+      OV_ALIGNED_FREE(&ctx->buffer[0]);
     }
     for (size_t i = 0; i < ctx->info.channels; ++i) {
       ctx->buffer[i] = new_buffer + aligned_samples * i;
@@ -226,7 +228,7 @@ static FLAC__StreamDecoderWriteStatus write_callback(FLAC__StreamDecoder const *
 }
 
 static void destroy(struct ovl_audio_decoder **const dp) {
-  struct flac **const ctxp = (void *)dp;
+  struct flac **const ctxp = (struct flac **)(void *)dp;
   if (!ctxp || !*ctxp) {
     return;
   }
@@ -237,124 +239,141 @@ static void destroy(struct ovl_audio_decoder **const dp) {
   ovl_audio_tag_destroy(&ctx->info.tag);
   if (ctx->buffer) {
     if (ctx->buffer[0]) {
-      ereport(mem_aligned_free(&ctx->buffer[0]));
+      OV_ALIGNED_FREE(&ctx->buffer[0]);
     }
-    ereport(mem_free(&ctx->buffer));
+    OV_FREE(&ctx->buffer);
   }
-  ereport(mem_free(ctxp));
+  OV_FREE(ctxp);
 }
 
 static struct ovl_audio_info const *get_info(struct ovl_audio_decoder const *const d) {
-  struct flac const *const ctx = (void const *)d;
+  struct flac const *const ctx = (struct flac const *)(void const *)d;
   if (!ctx) {
     return NULL;
   }
   return &ctx->info;
 }
 
-static NODISCARD error read(struct ovl_audio_decoder *const d, float const *const **const pcm, size_t *const samples) {
-  struct flac *const ctx = (void *)d;
+static NODISCARD bool read(struct ovl_audio_decoder *const d,
+                           float const *const **const pcm,
+                           size_t *const samples,
+                           struct ov_error *const err) {
+  struct flac *const ctx = (struct flac *)(void *)d;
   if (!ctx || !pcm || !samples || !ctx->decoder || !ctx->buffer) {
-    return errg(err_invalid_arugment);
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_invalid_argument);
+    return false;
   }
-  *pcm = ov_deconster_(ctx->buffer);
+  *pcm = (float const **)ov_deconster_(ctx->buffer);
   if (ctx->buffer_len > 0) {
     *samples = ctx->buffer_len;
     ctx->buffer_len = 0;
-    return eok();
+    return true;
   }
   FLAC__StreamDecoderState const state = FLAC__stream_decoder_get_state(ctx->decoder);
   if (state == FLAC__STREAM_DECODER_END_OF_STREAM) {
     *samples = 0;
-    return eok();
+    return true;
   }
   if (!FLAC__stream_decoder_process_single(ctx->decoder)) {
-    return emsg_i18n(err_type_generic, err_fail, gettext("Failed to decode FLAC frame"));
+    OV_ERROR_SET(err, ov_error_type_generic, ov_error_generic_fail, gettext("Failed to decode FLAC frame"));
+    return false;
   }
   *samples = ctx->buffer_len;
   ctx->buffer_len = 0;
-  return eok();
+  return true;
 }
 
-static NODISCARD error seek(struct ovl_audio_decoder *const d, uint64_t const position) {
-  struct flac *const ctx = (void *)d;
+static NODISCARD bool seek(struct ovl_audio_decoder *const d, uint64_t const position, struct ov_error *const err) {
+  struct flac *const ctx = (struct flac *)(void *)d;
   if (!ctx) {
-    return errg(err_invalid_arugment);
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_invalid_argument);
+    return false;
   }
   if (!FLAC__stream_decoder_seek_absolute(ctx->decoder, position)) {
-    return emsg_i18n(err_type_generic, err_fail, gettext("Failed to seek"));
+    OV_ERROR_SET(err, ov_error_type_generic, ov_error_generic_fail, gettext("Failed to seek"));
+    return false;
   }
-  return eok();
+  return true;
 }
 
-NODISCARD error ovl_audio_decoder_flac_create(struct ovl_source *const source, struct ovl_audio_decoder **const dp) {
+NODISCARD bool ovl_audio_decoder_flac_create(struct ovl_source *const source,
+                                             struct ovl_audio_decoder **const dp,
+                                             struct ov_error *const err) {
   if (!dp || *dp || !source) {
-    return errg(err_invalid_arugment);
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_invalid_argument);
+    return false;
   }
+
   struct flac *ctx = NULL;
-  error err = mem(&ctx, 1, sizeof(*ctx));
-  if (efailed(err)) {
-    goto cleanup;
+  bool result = false;
+
+  {
+    if (!OV_REALLOC(&ctx, 1, sizeof(*ctx))) {
+      OV_ERROR_SET_GENERIC(err, ov_error_generic_out_of_memory);
+      goto cleanup;
+    }
+    static struct ovl_audio_decoder_vtable const vtable = {
+        .destroy = destroy,
+        .get_info = get_info,
+        .read = read,
+        .seek = seek,
+    };
+    *ctx = (struct flac){
+        .vtable = &vtable,
+        .source = source,
+        .source_len = ovl_source_size(source),
+        .info =
+            {
+                .tag =
+                    {
+                        .loop_start = UINT64_MAX,
+                        .loop_end = UINT64_MAX,
+                        .loop_length = UINT64_MAX,
+                    },
+            },
+    };
+    if (ctx->source_len == UINT64_MAX) {
+      OV_ERROR_SET(err, ov_error_type_generic, ov_error_generic_fail, gettext("Failed to get source size"));
+      goto cleanup;
+    }
+    ctx->decoder = FLAC__stream_decoder_new();
+    if (!ctx->decoder) {
+      OV_ERROR_SET(err, ov_error_type_generic, ov_error_generic_fail, gettext("Failed to allocate flac decoder"));
+      goto cleanup;
+    }
+    FLAC__stream_decoder_set_metadata_respond(ctx->decoder, FLAC__METADATA_TYPE_VORBIS_COMMENT);
+    FLAC__StreamDecoderInitStatus const init_status = FLAC__stream_decoder_init_stream(ctx->decoder,
+                                                                                       read_callback,
+                                                                                       seek_callback,
+                                                                                       tell_callback,
+                                                                                       length_callback,
+                                                                                       eof_callback,
+                                                                                       write_callback,
+                                                                                       metadata_callback,
+                                                                                       error_callback,
+                                                                                       ctx);
+    if (init_status != FLAC__STREAM_DECODER_INIT_STATUS_OK) {
+      OV_ERROR_SET(err, ov_error_type_generic, ov_error_generic_fail, gettext("Failed to initialize FLAC decoder"));
+      goto cleanup;
+    }
+    if (!FLAC__stream_decoder_process_until_end_of_metadata(ctx->decoder)) {
+      OV_ERROR_SET(err, ov_error_type_generic, ov_error_generic_fail, gettext("Failed to process FLAC metadata"));
+      goto cleanup;
+    }
+    if (!OV_REALLOC(&ctx->buffer, ctx->info.channels, sizeof(float *))) {
+      OV_ERROR_SET_GENERIC(err, ov_error_generic_out_of_memory);
+      goto cleanup;
+    }
+    ctx->buffer[0] = NULL;
+    *dp = (struct ovl_audio_decoder *)(void *)ctx;
   }
-  static struct ovl_audio_decoder_vtable const vtable = {
-      .destroy = destroy,
-      .get_info = get_info,
-      .read = read,
-      .seek = seek,
-  };
-  *ctx = (struct flac){
-      .vtable = &vtable,
-      .source = source,
-      .source_len = ovl_source_size(source),
-      .info =
-          {
-              .tag =
-                  {
-                      .loop_start = UINT64_MAX,
-                      .loop_end = UINT64_MAX,
-                      .loop_length = UINT64_MAX,
-                  },
-          },
-  };
-  if (ctx->source_len == UINT64_MAX) {
-    err = emsg_i18n(err_type_generic, err_fail, gettext("Failed to get source size"));
-    goto cleanup;
-  }
-  ctx->decoder = FLAC__stream_decoder_new();
-  if (!ctx->decoder) {
-    err = emsg_i18n(err_type_generic, err_fail, gettext("Failed to allocate flac decoder"));
-    goto cleanup;
-  }
-  FLAC__stream_decoder_set_metadata_respond(ctx->decoder, FLAC__METADATA_TYPE_VORBIS_COMMENT);
-  FLAC__StreamDecoderInitStatus const init_status = FLAC__stream_decoder_init_stream(ctx->decoder,
-                                                                                     read_callback,
-                                                                                     seek_callback,
-                                                                                     tell_callback,
-                                                                                     length_callback,
-                                                                                     eof_callback,
-                                                                                     write_callback,
-                                                                                     metadata_callback,
-                                                                                     error_callback,
-                                                                                     ctx);
-  if (init_status != FLAC__STREAM_DECODER_INIT_STATUS_OK) {
-    err = emsg_i18n(err_type_generic, err_fail, gettext("Failed to initialize FLAC decoder"));
-    goto cleanup;
-  }
-  if (!FLAC__stream_decoder_process_until_end_of_metadata(ctx->decoder)) {
-    err = emsg_i18n(err_type_generic, err_fail, gettext("Failed to process FLAC metadata"));
-    goto cleanup;
-  }
-  err = mem(&ctx->buffer, ctx->info.channels, sizeof(float *));
-  if (efailed(err)) {
-    goto cleanup;
-  }
-  ctx->buffer[0] = NULL;
-  *dp = (void *)ctx;
+  result = true;
+
 cleanup:
-  if (efailed(err)) {
+  if (!result) {
     if (ctx) {
-      destroy((void *)&ctx);
+      destroy((struct ovl_audio_decoder **)(void *)&ctx);
     }
   }
-  return err;
+  return result;
 }

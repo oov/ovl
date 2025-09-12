@@ -44,10 +44,10 @@ struct decoder_context {
 static FLAC__StreamDecoderReadStatus
 read_callback(FLAC__StreamDecoder const *const decoder, FLAC__byte buffer[], size_t *bytes, void *client_data) {
   (void)decoder;
-  struct decoder_context *const ctx = client_data;
+  struct decoder_context *const ctx = (struct decoder_context *)client_data;
   size_t read = 0;
-  error err = ovl_file_read(ctx->file, buffer, *bytes, &read);
-  if (efailed(err)) {
+  struct ov_error err = {0};
+  if (!ovl_file_read(ctx->file, buffer, *bytes, &read, &err)) {
     return FLAC__STREAM_DECODER_READ_STATUS_ABORT;
   }
   if (read == 0) {
@@ -60,9 +60,9 @@ read_callback(FLAC__StreamDecoder const *const decoder, FLAC__byte buffer[], siz
 static FLAC__StreamDecoderSeekStatus
 seek_callback(FLAC__StreamDecoder const *const decoder, FLAC__uint64 absolute_byte_offset, void *client_data) {
   (void)decoder;
-  struct decoder_context *const ctx = client_data;
-  error err = ovl_file_seek(ctx->file, (int64_t)absolute_byte_offset, ovl_file_seek_method_set);
-  if (efailed(err)) {
+  struct decoder_context *const ctx = (struct decoder_context *)client_data;
+  struct ov_error err = {0};
+  if (!ovl_file_seek(ctx->file, (int64_t)absolute_byte_offset, ovl_file_seek_method_set, &err)) {
     return FLAC__STREAM_DECODER_SEEK_STATUS_ERROR;
   }
   return FLAC__STREAM_DECODER_SEEK_STATUS_OK;
@@ -71,10 +71,10 @@ seek_callback(FLAC__StreamDecoder const *const decoder, FLAC__uint64 absolute_by
 static FLAC__StreamDecoderTellStatus
 tell_callback(FLAC__StreamDecoder const *const decoder, FLAC__uint64 *absolute_byte_offset, void *client_data) {
   (void)decoder;
-  struct decoder_context *const ctx = client_data;
+  struct decoder_context *const ctx = (struct decoder_context *)client_data;
   int64_t pos = 0;
-  error err = ovl_file_tell(ctx->file, &pos);
-  if (efailed(err)) {
+  struct ov_error err = {0};
+  if (!ovl_file_tell(ctx->file, &pos, &err)) {
     return FLAC__STREAM_DECODER_TELL_STATUS_ERROR;
   }
   *absolute_byte_offset = (FLAC__uint64)pos;
@@ -84,10 +84,10 @@ tell_callback(FLAC__StreamDecoder const *const decoder, FLAC__uint64 *absolute_b
 static FLAC__StreamDecoderLengthStatus
 length_callback(FLAC__StreamDecoder const *const decoder, FLAC__uint64 *stream_length, void *client_data) {
   (void)decoder;
-  struct decoder_context *const ctx = client_data;
+  struct decoder_context *const ctx = (struct decoder_context *)client_data;
   uint64_t size = 0;
-  error err = ovl_file_size(ctx->file, &size);
-  if (efailed(err)) {
+  struct ov_error err = {0};
+  if (!ovl_file_size(ctx->file, &size, &err)) {
     return FLAC__STREAM_DECODER_LENGTH_STATUS_ERROR;
   }
   *stream_length = size;
@@ -96,10 +96,12 @@ length_callback(FLAC__StreamDecoder const *const decoder, FLAC__uint64 *stream_l
 
 static FLAC__bool eof_callback(FLAC__StreamDecoder const *const decoder, void *client_data) {
   (void)decoder;
-  struct decoder_context *const ctx = client_data;
+  struct decoder_context *const ctx = (struct decoder_context *)client_data;
   int64_t pos = 0;
   uint64_t size = 0;
-  if (efailed(ovl_file_tell(ctx->file, &pos)) || efailed(ovl_file_size(ctx->file, &size))) {
+  struct ov_error err1 = {0};
+  struct ov_error err2 = {0};
+  if (!ovl_file_tell(ctx->file, &pos, &err1) || !ovl_file_size(ctx->file, &size, &err2)) {
     return true;
   }
   return pos >= (int64_t)size;
@@ -110,7 +112,7 @@ static FLAC__StreamDecoderWriteStatus write_callback(FLAC__StreamDecoder const *
                                                      FLAC__int32 const *const buffer[],
                                                      void *const client_data) {
   (void)decoder;
-  struct decoder_context *const ctx = client_data;
+  struct decoder_context *const ctx = (struct decoder_context *)client_data;
 
   for (size_t i = 0; i < frame->header.channels; ++i) {
     float *dst = ctx->buffer[i] + ctx->samples;
@@ -127,18 +129,16 @@ static void metadata_callback(FLAC__StreamDecoder const *const decoder,
                               FLAC__StreamMetadata const *const metadata,
                               void *const client_data) {
   (void)decoder;
-  struct decoder_context *const ctx = client_data;
+  struct decoder_context *const ctx = (struct decoder_context *)client_data;
   if (metadata->type == FLAC__METADATA_TYPE_STREAMINFO) {
     ctx->channels = metadata->data.stream_info.channels;
     ctx->sample_rate = metadata->data.stream_info.sample_rate;
-    error err = OV_ARRAY_GROW(&ctx->buffer, ctx->channels);
-    if (efailed(err)) {
+    if (!OV_ARRAY_GROW(&ctx->buffer, ctx->channels)) {
       ctx->error = 1;
       return;
     }
     ctx->buffer[0] = NULL;
-    err = OV_ARRAY_GROW(&ctx->buffer[0], metadata->data.stream_info.total_samples * ctx->channels);
-    if (efailed(err)) {
+    if (!OV_ARRAY_GROW(&ctx->buffer[0], metadata->data.stream_info.total_samples * ctx->channels)) {
       ctx->error = 1;
       return;
     }
@@ -152,7 +152,7 @@ static void
 error_callback(FLAC__StreamDecoder const *decoder, FLAC__StreamDecoderErrorStatus status, void *client_data) {
   (void)decoder;
   (void)status;
-  struct decoder_context *const ctx = client_data;
+  struct decoder_context *const ctx = (struct decoder_context *)client_data;
   ctx->error = 1;
 }
 
@@ -160,8 +160,8 @@ static struct test_util_decoded_audio decoder_all(wchar_t const *const filepath)
   struct test_util_decoded_audio result = {0};
   struct decoder_context ctx = {0};
   FLAC__StreamDecoder *decoder = NULL;
-  error err = ovl_file_open(filepath, &ctx.file);
-  if (efailed(err)) {
+  struct ov_error err = {0};
+  if (!ovl_file_open(filepath, &ctx.file, &err)) {
     goto cleanup;
   }
   decoder = FLAC__stream_decoder_new();
@@ -212,95 +212,97 @@ static void all(void) {
   struct ovl_source *source = NULL;
   struct ovl_file *file_golden = NULL;
   struct ovl_file *file_all = NULL;
-  error err = eok();
-
-  audio = decoder_all(TESTDATADIR NSTR("/test.flac"));
-  if (!TEST_CHECK(audio.buffer)) {
-    goto cleanup;
-  }
-  file_golden =
-      test_util_create_wave_file(NSTR("flac-all-golden.wav"), audio.samples, audio.channels, audio.sample_rate);
-  if (!TEST_CHECK(file_golden)) {
-    goto cleanup;
-  }
-  if (!TEST_CHECK(test_util_write_wave_body_float(
-          file_golden, (float const *const *)audio.buffer, audio.samples, audio.channels))) {
-    goto cleanup;
-  }
-  err = ovl_source_file_create(TESTDATADIR NSTR("/test.flac"), &source);
-  if (efailed(err)) {
-    goto cleanup;
-  }
-  err = ovl_audio_decoder_flac_create(source, &d);
-  if (!TEST_SUCCEEDED_F(err)) {
-    goto cleanup;
-  }
-
-  struct ovl_audio_info const *info = ovl_audio_decoder_get_info(d);
-  TEST_CHECK(info->sample_rate == audio.sample_rate);
-  TEST_CHECK(info->channels == audio.channels);
-  TEST_CHECK(info->samples == audio.samples);
-  static char const title_expected[] = "タイトル";
-  static char const artist_expected[] = "アーティスト";
-  static uint64_t const start_expected = 34944;
-  static uint64_t const end_expected = 50424;
-  static uint64_t const length_expected = UINT64_MAX;
-  TEST_CHECK(strcmp(info->tag.title, title_expected) == 0);
-  TEST_MSG("tag.title want \"%s\" got \"%s\"", title_expected, info->tag.title);
-  TEST_CHECK(strcmp(info->tag.artist, artist_expected) == 0);
-  TEST_MSG("tag.artist want \"%s\" got \"%s\"", artist_expected, info->tag.artist);
-  TEST_CHECK(info->tag.loop_start == start_expected);
-  TEST_MSG("tag.loop_start want %" PRIu64 " got %" PRIu64, start_expected, info->tag.loop_start);
-  TEST_CHECK(info->tag.loop_end == end_expected);
-  TEST_MSG("tag.loop_end want %" PRIu64 " got %" PRIu64, end_expected, info->tag.loop_end);
-  TEST_CHECK(info->tag.loop_length == length_expected);
-  TEST_MSG("tag.loop_length want %" PRIu64 " got %" PRIu64, length_expected, info->tag.loop_length);
-
-  file_all = test_util_create_wave_file(NSTR("flac-all.wav"), (size_t)info->samples, info->channels, info->sample_rate);
-  if (!TEST_CHECK(file_all)) {
-    goto cleanup;
-  }
-
-  float const *const *pcm = NULL;
-  size_t pos = 0;
-  struct test_util_wave_diff_count count = {0};
-  while (pos < info->samples) {
-    size_t read = 0;
-    err = ovl_audio_decoder_read(d, &pcm, &read);
-    if (!TEST_SUCCEEDED_F(err)) {
-      goto cleanup;
-    }
-    if (read == 0) {
-      break;
-    }
-    if (!TEST_CHECK(test_util_write_wave_body_float(file_all, pcm, read, info->channels))) {
-      goto cleanup;
-    }
-    test_util_wave_diff_counter(
-        &count, pcm, (float const *[]){audio.buffer[0] + pos, audio.buffer[1] + pos}, read, info->channels);
-    pos += read;
-  }
+  struct ov_error err = {0};
 
   {
-    size_t final_read = 0;
-    err = ovl_audio_decoder_read(d, &pcm, &final_read);
-    if (!TEST_SUCCEEDED_F(err)) {
+    audio = decoder_all(TESTDATADIR NSTR("/test.flac"));
+    if (!TEST_CHECK(audio.buffer)) {
       goto cleanup;
     }
-    TEST_CHECK(final_read == 0);
-    TEST_MSG("Extra read after EOF: expected 0, got %zu", final_read);
+    file_golden =
+        test_util_create_wave_file(NSTR("flac-all-golden.wav"), audio.samples, audio.channels, audio.sample_rate);
+    if (!TEST_CHECK(file_golden)) {
+      goto cleanup;
+    }
+    if (!TEST_CHECK(test_util_write_wave_body_float(
+            file_golden, (float const *const *)audio.buffer, audio.samples, audio.channels))) {
+      goto cleanup;
+    }
+    if (!TEST_CHECK(ovl_source_file_create(TESTDATADIR NSTR("/test.flac"), &source, &err))) {
+      OV_ERROR_ADD_TRACE(&err);
+      goto cleanup;
+    }
+    if (!TEST_CHECK(ovl_audio_decoder_flac_create(source, &d, &err))) {
+      OV_ERROR_ADD_TRACE(&err);
+      goto cleanup;
+    }
+
+    struct ovl_audio_info const *info = ovl_audio_decoder_get_info(d);
+    TEST_CHECK(info->sample_rate == audio.sample_rate);
+    TEST_CHECK(info->channels == audio.channels);
+    TEST_CHECK(info->samples == audio.samples);
+    static char const title_expected[] = "タイトル";
+    static char const artist_expected[] = "アーティスト";
+    static uint64_t const start_expected = 34944;
+    static uint64_t const end_expected = 50424;
+    static uint64_t const length_expected = UINT64_MAX;
+    TEST_CHECK(strcmp(info->tag.title, title_expected) == 0);
+    TEST_MSG("tag.title want \"%s\" got \"%s\"", title_expected, info->tag.title);
+    TEST_CHECK(strcmp(info->tag.artist, artist_expected) == 0);
+    TEST_MSG("tag.artist want \"%s\" got \"%s\"", artist_expected, info->tag.artist);
+    TEST_CHECK(info->tag.loop_start == start_expected);
+    TEST_MSG("tag.loop_start want %" PRIu64 " got %" PRIu64, start_expected, info->tag.loop_start);
+    TEST_CHECK(info->tag.loop_end == end_expected);
+    TEST_MSG("tag.loop_end want %" PRIu64 " got %" PRIu64, end_expected, info->tag.loop_end);
+    TEST_CHECK(info->tag.loop_length == length_expected);
+    TEST_MSG("tag.loop_length want %" PRIu64 " got %" PRIu64, length_expected, info->tag.loop_length);
+
+    file_all =
+        test_util_create_wave_file(NSTR("flac-all.wav"), (size_t)info->samples, info->channels, info->sample_rate);
+    if (!TEST_CHECK(file_all)) {
+      goto cleanup;
+    }
+
+    float const *const *pcm = NULL;
+    size_t pos = 0;
+    struct test_util_wave_diff_count count = {0};
+    while (pos < info->samples) {
+      size_t read = 0;
+      if (!TEST_CHECK(ovl_audio_decoder_read(d, &pcm, &read, &err))) {
+        OV_ERROR_ADD_TRACE(&err);
+        goto cleanup;
+      }
+      if (read == 0) {
+        break;
+      }
+      if (!TEST_CHECK(test_util_write_wave_body_float(file_all, pcm, read, info->channels))) {
+        goto cleanup;
+      }
+      test_util_wave_diff_counter(
+          &count, pcm, (float const *[]){audio.buffer[0] + pos, audio.buffer[1] + pos}, read, info->channels);
+      pos += read;
+    }
+
+    {
+      size_t final_read = 0;
+      if (!TEST_CHECK(ovl_audio_decoder_read(d, &pcm, &final_read, &err))) {
+        OV_ERROR_ADD_TRACE(&err);
+        goto cleanup;
+      }
+      TEST_CHECK(final_read == 0);
+      TEST_MSG("Extra read after EOF: expected 0, got %zu", final_read);
+    }
+
+    TEST_CHECK(pos == info->samples);
+    TEST_CHECK(count.large_diff_count == 0);
+    TEST_MSG("Total samples: %zu, Mismatches: %zu (%.2f%%), Large differences: "
+             "%zu (%.2f%%)",
+             count.total_samples,
+             count.mismatches,
+             (double)count.mismatches / (double)count.total_samples * 100.0,
+             count.large_diff_count,
+             (double)count.large_diff_count / (double)count.total_samples * 100.0);
   }
-
-  TEST_CHECK(pos == info->samples);
-  TEST_CHECK(count.large_diff_count == 0);
-  TEST_MSG("Total samples: %zu, Mismatches: %zu (%.2f%%), Large differences: "
-           "%zu (%.2f%%)",
-           count.total_samples,
-           count.mismatches,
-           (double)count.mismatches / (double)count.total_samples * 100.0,
-           count.large_diff_count,
-           (double)count.large_diff_count / (double)count.total_samples * 100.0);
-
 cleanup:
   if (file_golden) {
     test_util_close_wave(file_golden);
@@ -326,77 +328,84 @@ static void seek(void) {
   struct ovl_source *source = NULL;
   struct ovl_file *file_golden = NULL;
   struct ovl_file *file_seek = NULL;
-  error err = eok();
+  struct ov_error err = {0};
+  bool success = false;
 
   audio = decoder_all(TESTDATADIR NSTR("/test.flac"));
   if (!TEST_CHECK(audio.buffer)) {
     goto cleanup;
   }
-  err = ovl_source_file_create(TESTDATADIR NSTR("/test.flac"), &source);
-  if (efailed(err)) {
+  if (!TEST_CHECK(ovl_source_file_create(TESTDATADIR NSTR("/test.flac"), &source, &err))) {
+    OV_ERROR_ADD_TRACE(&err);
     goto cleanup;
   }
-  err = ovl_audio_decoder_flac_create(source, &d);
-  if (!TEST_SUCCEEDED_F(err)) {
+  if (!TEST_CHECK(ovl_audio_decoder_flac_create(source, &d, &err))) {
+    OV_ERROR_ADD_TRACE(&err);
     goto cleanup;
   }
-  struct ovl_audio_info const *info = ovl_audio_decoder_get_info(d);
-  size_t const one_beat_samples = (size_t)(60 * audio.sample_rate / 89);
-  file_golden = test_util_create_wave_file(
-      NSTR("flac-seek-golden.wav"), (size_t)info->samples - one_beat_samples, info->channels, info->sample_rate);
-  if (!TEST_CHECK(file_golden)) {
-    goto cleanup;
-  }
-  if (!TEST_CHECK(test_util_write_wave_body_float(
-          file_golden,
-          (float const *[]){audio.buffer[0] + one_beat_samples, audio.buffer[1] + one_beat_samples},
-          (size_t)info->samples - one_beat_samples,
-          info->channels))) {
-    goto cleanup;
-  }
-
-  err = ovl_audio_decoder_seek(d, one_beat_samples);
-  if (!TEST_SUCCEEDED_F(err)) {
-    goto cleanup;
-  }
-
-  file_seek = test_util_create_wave_file(
-      NSTR("flac-seek.wav"), (size_t)info->samples - one_beat_samples, info->channels, info->sample_rate);
-  if (!TEST_CHECK(file_seek)) {
-    goto cleanup;
-  }
-
-  float const *const *pcm = NULL;
-  size_t pos = one_beat_samples;
-  struct test_util_wave_diff_count count = {0};
-  while (pos < info->samples) {
-    size_t read = 0;
-    err = ovl_audio_decoder_read(d, &pcm, &read);
-    if (!TEST_SUCCEEDED_F(err)) {
+  {
+    struct ovl_audio_info const *info = ovl_audio_decoder_get_info(d);
+    size_t const one_beat_samples = (size_t)(60 * audio.sample_rate / 89);
+    file_golden = test_util_create_wave_file(
+        NSTR("flac-seek-golden.wav"), (size_t)info->samples - one_beat_samples, info->channels, info->sample_rate);
+    if (!TEST_CHECK(file_golden)) {
       goto cleanup;
     }
-    if (read == 0) {
-      break;
-    }
-    if (!TEST_CHECK(test_util_write_wave_body_float(file_seek, pcm, read, info->channels))) {
+    if (!TEST_CHECK(test_util_write_wave_body_float(
+            file_golden,
+            (float const *[]){audio.buffer[0] + one_beat_samples, audio.buffer[1] + one_beat_samples},
+            (size_t)info->samples - one_beat_samples,
+            info->channels))) {
       goto cleanup;
     }
-    test_util_wave_diff_counter(
-        &count, pcm, (float const *[]){audio.buffer[0] + pos, audio.buffer[1] + pos}, read, info->channels);
-    pos += read;
-  }
-  TEST_CHECK(pos == info->samples);
-  TEST_MSG("want %llu got %zu", info->samples, pos);
-  TEST_CHECK(count.large_diff_count == 0);
-  TEST_MSG("Total samples: %zu, Mismatches: %zu (%.2f%%), Large differences: "
-           "%zu (%.2f%%)",
-           count.total_samples,
-           count.mismatches,
-           (double)count.mismatches / (double)count.total_samples * 100.0,
-           count.large_diff_count,
-           (double)count.large_diff_count / (double)count.total_samples * 100.0);
 
+    if (!TEST_CHECK(ovl_audio_decoder_seek(d, one_beat_samples, &err))) {
+      OV_ERROR_ADD_TRACE(&err);
+      goto cleanup;
+    }
+
+    file_seek = test_util_create_wave_file(
+        NSTR("flac-seek.wav"), (size_t)info->samples - one_beat_samples, info->channels, info->sample_rate);
+    if (!TEST_CHECK(file_seek)) {
+      goto cleanup;
+    }
+
+    float const *const *pcm = NULL;
+    size_t pos = one_beat_samples;
+    struct test_util_wave_diff_count count = {0};
+    while (pos < info->samples) {
+      size_t read = 0;
+      if (!TEST_CHECK(ovl_audio_decoder_read(d, &pcm, &read, &err))) {
+        OV_ERROR_ADD_TRACE(&err);
+        goto cleanup;
+      }
+      if (read == 0) {
+        break;
+      }
+      if (!TEST_CHECK(test_util_write_wave_body_float(file_seek, pcm, read, info->channels))) {
+        goto cleanup;
+      }
+      test_util_wave_diff_counter(
+          &count, pcm, (float const *[]){audio.buffer[0] + pos, audio.buffer[1] + pos}, read, info->channels);
+      pos += read;
+    }
+    TEST_CHECK(pos == info->samples);
+    TEST_MSG("want %llu got %zu", info->samples, pos);
+    TEST_CHECK(count.large_diff_count == 0);
+    TEST_MSG("Total samples: %zu, Mismatches: %zu (%.2f%%), Large differences: "
+             "%zu (%.2f%%)",
+             count.total_samples,
+             count.mismatches,
+             (double)count.mismatches / (double)count.total_samples * 100.0,
+             count.large_diff_count,
+             (double)count.large_diff_count / (double)count.total_samples * 100.0);
+  }
+
+  success = true;
 cleanup:
+  if (!success) {
+    OV_ERROR_REPORT(&err, NULL);
+  }
   if (file_golden) {
     test_util_close_wave(file_golden);
   }

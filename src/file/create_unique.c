@@ -1,11 +1,17 @@
 #include <ovl/file.h>
 
-#include <ovarray.h>
 #include <ovl/path.h>
 
-#include "../i18n.h"
+#include <ovarray.h>
+#include <ovmo.h>
+#include <ovrand.h>
 
 #ifdef _WIN32
+
+#  include <wchar.h>
+
+#  define WIN32_LEAN_AND_MEAN
+#  include <windows.h>
 
 #  define STRLEN wcslen
 #  define STRCPY wcscpy
@@ -33,12 +39,14 @@ static void format_hex_string(NATIVE_CHAR *dest, uint64_t const value) {
   }
 }
 
-NODISCARD error ovl_file_create_unique(NATIVE_CHAR const *const dir,
-                                       NATIVE_CHAR const *const base_name,
-                                       struct ovl_file **const file,
-                                       NATIVE_CHAR **const created_path) {
+NODISCARD bool ovl_file_create_unique(NATIVE_CHAR const *const dir,
+                                      NATIVE_CHAR const *const base_name,
+                                      struct ovl_file **const file,
+                                      NATIVE_CHAR **const created_path,
+                                      struct ov_error *const err) {
   if (!dir || !file || *file || !created_path || *created_path) {
-    return errg(err_invalid_arugment);
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_invalid_argument);
+    return false;
   }
 
   NATIVE_CHAR const *actual_base_name = base_name;
@@ -48,7 +56,7 @@ NODISCARD error ovl_file_create_unique(NATIVE_CHAR const *const dir,
 
   NATIVE_CHAR *path = NULL;
   HANDLE h = INVALID_HANDLE_VALUE;
-  error err = eok();
+  bool result = false;
 
   size_t const dir_len = STRLEN(dir);
   size_t const base_name_len = STRLEN(actual_base_name);
@@ -66,9 +74,8 @@ NODISCARD error ovl_file_create_unique(NATIVE_CHAR const *const dir,
   size_t sep_len = has_trailing_sep ? 0 : 1;
   size_t const path_len = dir_len + sep_len + basename_len + 1 + 16 + ext_len;
 
-  err = OV_ARRAY_GROW(&path, path_len + 1);
-  if (efailed(err)) {
-    err = ethru(err);
+  if (!OV_ARRAY_GROW(&path, path_len + 1)) {
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_out_of_memory);
     goto cleanup;
   }
 
@@ -80,28 +87,34 @@ NODISCARD error ovl_file_create_unique(NATIVE_CHAR const *const dir,
   path[dir_len + sep_len + basename_len] = NSTR('_');
   STRCPY(path + dir_len + sep_len + basename_len + 1 + 16, actual_base_name + ext_pos);
 
-  NATIVE_CHAR *digits = path + dir_len + sep_len + basename_len + 1;
-  uint64_t rng_state = ov_splitmix64(get_global_hint() + GetTickCount64());
+  {
+    NATIVE_CHAR *digits = path + dir_len + sep_len + basename_len + 1;
+    uint64_t rng_state = ov_rand_splitmix64(ov_rand_get_global_hint() + GetTickCount64());
 
-  for (int attempt = 0; attempt < 10; ++attempt) {
-    rng_state = ov_splitmix64(rng_state);
-    format_hex_string(digits, rng_state);
-    h = CreateFileW(path, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (h != INVALID_HANDLE_VALUE) {
-      *file = (struct ovl_file *)h;
-      *created_path = path;
-      OV_ARRAY_SET_LENGTH(path, path_len);
-      path = NULL;
-      h = INVALID_HANDLE_VALUE;
-      goto cleanup;
-    }
-    HRESULT hr = HRESULT_FROM_WIN32(GetLastError());
-    if (hr != HRESULT_FROM_WIN32(ERROR_FILE_EXISTS)) {
-      err = errhr(hr);
-      goto cleanup;
+    for (int attempt = 0; attempt < 10; ++attempt) {
+      rng_state = ov_rand_splitmix64(rng_state);
+      format_hex_string(digits, rng_state);
+      h = CreateFileW(path, GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+      if (h != INVALID_HANDLE_VALUE) {
+        *file = (struct ovl_file *)h;
+        *created_path = path;
+        OV_ARRAY_SET_LENGTH(path, path_len);
+        path = NULL;
+        h = INVALID_HANDLE_VALUE;
+        result = true;
+        goto cleanup;
+      }
+      HRESULT hr = HRESULT_FROM_WIN32(GetLastError());
+      if (hr != HRESULT_FROM_WIN32(ERROR_FILE_EXISTS)) {
+        OV_ERROR_SET_HRESULT(err, hr);
+        goto cleanup;
+      }
     }
   }
-  err = emsg_i18n(err_type_generic, err_fail, gettext("Failed to create unique file after multiple attempts"));
+  OV_ERROR_SET(err,
+               ov_error_type_generic,
+               ov_error_generic_fail,
+               gettext("Failed to create unique file after multiple attempts"));
 
 cleanup:
   if (h != INVALID_HANDLE_VALUE) {
@@ -111,7 +124,7 @@ cleanup:
   if (path) {
     OV_ARRAY_DESTROY(&path);
   }
-  return err;
+  return result;
 }
 
 #endif

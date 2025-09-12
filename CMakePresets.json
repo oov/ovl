@@ -14,8 +14,14 @@
       "binaryDir": "${sourceDir}/build/debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_STANDARD": "11",
+        "CMAKE_C_STANDARD_REQUIRED": "ON",
+        "CMAKE_C_EXTENSIONS": "OFF",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "FORMAT_SOURCES": "ON"
+        "CMAKE_VERBOSE_MAKEFILE": "ON",
+        "FORMAT_SOURCES": "OFF",
+        "LEAK_DETECTOR": "ON",
+        "ALLOCATE_LOGGER": "ON"
       },
       "environment": {}
     },
@@ -26,7 +32,9 @@
       "description": "Release build using Ninja generator",
       "binaryDir": "${sourceDir}/build/release",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "LEAK_DETECTOR": "OFF",
+        "ALLOCATE_LOGGER": "OFF"
       }
     }
   ]

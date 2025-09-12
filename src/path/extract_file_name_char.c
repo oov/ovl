@@ -13,5 +13,5 @@ char const *ovl_path_extract_file_name_char_const(char const *const path) {
 }
 
 char *ovl_path_extract_file_name_char_mut(char *const path) {
-  return ov_deconster_(ovl_path_extract_file_name_char_const(path));
+  return (char *)ov_deconster_(ovl_path_extract_file_name_char_const(path));
 }

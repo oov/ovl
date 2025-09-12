@@ -1,38 +1,60 @@
 #include "tag.h"
 
 #include <ovarray.h>
+#include <string.h>
 
-static NODISCARD error set_string(char **dest, char const *const v, size_t const vlen) {
-  error err = OV_ARRAY_GROW(dest, vlen + 1);
-  if (efailed(err)) {
-    err = ethru(err);
-    return err;
+static NODISCARD bool set_string(char **dest, char const *const v, size_t const vlen, struct ov_error *const err) {
+  if (!OV_ARRAY_GROW(dest, vlen + 1)) {
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_out_of_memory);
+    return false;
   }
   memcpy(*dest, v, vlen);
   (*dest)[vlen] = '\0';
-  return eok();
+  return true;
 }
 
-NODISCARD error ovl_audio_tag_set_title(struct ovl_audio_tag *const tag, char const *const v, size_t const vlen) {
+NODISCARD bool ovl_audio_tag_set_title(struct ovl_audio_tag *const tag,
+                                       char const *const v,
+                                       size_t const vlen,
+                                       struct ov_error *const err) {
   if (!tag || !v) {
-    return errg(err_invalid_arugment);
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_invalid_argument);
+    return false;
   }
-  error err = set_string(&tag->title, v, vlen);
-  if (efailed(err)) {
-    return ethru(err);
+
+  bool result = false;
+
+  if (!set_string(&tag->title, v, vlen, err)) {
+    OV_ERROR_ADD_TRACE(err);
+    goto cleanup;
   }
-  return eok();
+
+  result = true;
+
+cleanup:
+  return result;
 }
 
-NODISCARD error ovl_audio_tag_set_artist(struct ovl_audio_tag *const tag, char const *const v, size_t const vlen) {
+NODISCARD bool ovl_audio_tag_set_artist(struct ovl_audio_tag *const tag,
+                                        char const *const v,
+                                        size_t const vlen,
+                                        struct ov_error *const err) {
   if (!tag || !v) {
-    return errg(err_invalid_arugment);
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_invalid_argument);
+    return false;
   }
-  error err = set_string(&tag->artist, v, vlen);
-  if (efailed(err)) {
-    return ethru(err);
+
+  bool result = false;
+
+  if (!set_string(&tag->artist, v, vlen, err)) {
+    OV_ERROR_ADD_TRACE(err);
+    goto cleanup;
   }
-  return eok();
+
+  result = true;
+
+cleanup:
+  return result;
 }
 
 void ovl_audio_tag_destroy(struct ovl_audio_tag *const tag) {

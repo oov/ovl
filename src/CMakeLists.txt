@@ -4,6 +4,8 @@ option(USE_NO_PTHREAD "add -no-pthread" OFF)
 option(USE_LTO "use LTO" ON)
 option(TARGET_EMSCRIPTEN "target emscripten" OFF)
 option(TARGET_WASI_SDK "target wasi-sdk" OFF)
+option(LEAK_DETECTOR "enable leak detector" OFF)
+option(ALLOCATE_LOGGER "enable allocate logger" OFF)
 set(LDNAME "lld" CACHE STRING "ld name")
 
 # 3rd/ogg
@@ -55,6 +57,7 @@ set(is_clang "$<C_COMPILER_ID:Clang>")
 set(v16_or_later "$<VERSION_GREATER_EQUAL:$<C_COMPILER_VERSION>,16>")
 set(v18_or_later "$<VERSION_GREATER_EQUAL:$<C_COMPILER_VERSION>,18>")
 set(v19_or_later "$<VERSION_GREATER_EQUAL:$<C_COMPILER_VERSION>,19>")
+set(v21_or_later "$<VERSION_GREATER_EQUAL:$<C_COMPILER_VERSION>,21>")
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -67,7 +70,7 @@ if (NOT TARGET ovbase) # if ovbase is not added in the parent project
     FetchContent_Declare(
       ovbase
       GIT_REPOSITORY https://github.com/oov/ovbase
-      GIT_TAG        caace762bea6a59bfe4f9fc51a703099e3f65e9e
+      GIT_TAG        d59e6ce13417ba77b19b8a964b751d232b857de4
     )
     FetchContent_MakeAvailable(ovbase)
   endif()
@@ -86,6 +89,7 @@ INTERFACE
   -pedantic-errors
   -Wno-declaration-after-statement
   -Wno-padded
+  $<$<AND:${is_clang},${v21_or_later}>:-Wno-c++-keyword>
   $<$<AND:${is_clang},${v19_or_later}>:-Wno-pre-c11-compat>
   $<$<AND:${is_clang},${v18_or_later}>:-Wno-switch-default>
   $<$<AND:${is_clang},${v16_or_later}>:-Wno-unsafe-buffer-usage>
@@ -231,32 +235,32 @@ install(TARGETS ovl
 install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ovl DESTINATION include)
 
 # Test executables
-add_executable(test_path path/test.c)
-list(APPEND tests test_path)
+add_executable(test_ovl_path path/test.c)
+list(APPEND tests test_ovl_path)
 
-add_executable(test_file file/test.c)
-list(APPEND tests test_file)
+add_executable(test_ovl_file file/test.c)
+list(APPEND tests test_ovl_file)
 
-add_executable(test_decoder_flac audio/decoder/flac_test.c)
-list(APPEND tests test_decoder_flac)
+add_executable(test_ovl_decoder_flac audio/decoder/flac_test.c)
+list(APPEND tests test_ovl_decoder_flac)
 
-add_executable(test_decoder_mp3 audio/decoder/mp3_test.c)
-list(APPEND tests test_decoder_mp3)
+add_executable(test_ovl_decoder_mp3 audio/decoder/mp3_test.c)
+list(APPEND tests test_ovl_decoder_mp3)
 
-add_executable(test_decoder_ogg audio/decoder/ogg_test.c)
-list(APPEND tests test_decoder_ogg)
+add_executable(test_ovl_decoder_ogg audio/decoder/ogg_test.c)
+list(APPEND tests test_ovl_decoder_ogg)
 
-add_executable(test_decoder_opus audio/decoder/opus_test.c)
-list(APPEND tests test_decoder_opus)
+add_executable(test_ovl_decoder_opus audio/decoder/opus_test.c)
+list(APPEND tests test_ovl_decoder_opus)
 
-add_executable(test_decoder_wav audio/decoder/wav_test.c)
-list(APPEND tests test_decoder_wav)
+add_executable(test_ovl_decoder_wav audio/decoder/wav_test.c)
+list(APPEND tests test_ovl_decoder_wav)
 
-add_executable(test_decoder_bidi audio/decoder/bidi_test.c)
-list(APPEND tests test_decoder_bidi)
+add_executable(test_ovl_decoder_bidi audio/decoder/bidi_test.c)
+list(APPEND tests test_ovl_decoder_bidi)
 
-add_executable(test_tag_id3v2 audio/tag/id3v2_test.c)
-list(APPEND tests test_tag_id3v2)
+add_executable(test_ovl_tag_id3v2 audio/tag/id3v2_test.c)
+list(APPEND tests test_ovl_tag_id3v2)
 
 foreach(target ${tests})
   add_test(NAME ${target} COMMAND ${target})

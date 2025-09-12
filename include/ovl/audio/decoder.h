@@ -25,16 +25,21 @@ struct ovl_audio_decoder_vtable {
    * @param d Pointer to the context.
    * @param pcm returns the pointer to the PCM, valid until next read.
    * @param samples returns the number of samples stored in pcm.
-   * @return Error code.
+   * @param err Error information.
+   * @return true on success, false on failure.
    */
-  NODISCARD error (*read)(struct ovl_audio_decoder *const d, float const *const **const pcm, size_t *const samples);
+  NODISCARD bool (*read)(struct ovl_audio_decoder *const d,
+                         float const *const **const pcm,
+                         size_t *const samples,
+                         struct ov_error *const err);
   /**
    * @brief Seeks to a specific sample position.
    * @param d Pointer to the context.
    * @param position Desired position.
-   * @return Error code.
+   * @param err Error information.
+   * @return true on success, false on failure.
    */
-  NODISCARD error (*seek)(struct ovl_audio_decoder *const d, uint64_t const position);
+  NODISCARD bool (*seek)(struct ovl_audio_decoder *const d, uint64_t const position, struct ov_error *const err);
 };
 
 struct ovl_audio_decoder {
@@ -51,11 +56,13 @@ static inline void ovl_audio_decoder_destroy(struct ovl_audio_decoder **const dp
 static inline struct ovl_audio_info const *ovl_audio_decoder_get_info(struct ovl_audio_decoder const *const d) {
   return d->vtable->get_info(d);
 }
-static inline NODISCARD error ovl_audio_decoder_read(struct ovl_audio_decoder *const d,
-                                                     float const *const **const pcm,
-                                                     size_t *const samples) {
-  return d->vtable->read(d, pcm, samples);
+static inline NODISCARD bool ovl_audio_decoder_read(struct ovl_audio_decoder *const d,
+                                                    float const *const **const pcm,
+                                                    size_t *const samples,
+                                                    struct ov_error *const err) {
+  return d->vtable->read(d, pcm, samples, err);
 }
-static inline NODISCARD error ovl_audio_decoder_seek(struct ovl_audio_decoder *const d, uint64_t const position) {
-  return d->vtable->seek(d, position);
+static inline NODISCARD bool
+ovl_audio_decoder_seek(struct ovl_audio_decoder *const d, uint64_t const position, struct ov_error *const err) {
+  return d->vtable->seek(d, position, err);
 }

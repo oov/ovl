@@ -26,6 +26,6 @@ wchar_t const *ovl_path_extract_file_name_wchar_const(wchar_t const *const path)
 char *ovl_path_extract_file_name_char_mut(char *const path);
 wchar_t *ovl_path_extract_file_name_wchar_mut(wchar_t *const path);
 
-NODISCARD error ovl_path_get_temp_directory(NATIVE_CHAR **const path);
+NODISCARD bool ovl_path_get_temp_directory(NATIVE_CHAR **const path, struct ov_error *const err);
 
-NODISCARD error ovl_path_get_module_name(NATIVE_CHAR **const module_path, void *const hinst);
+NODISCARD bool ovl_path_get_module_name(NATIVE_CHAR **const module_path, void *const hinst, struct ov_error *const err);

@@ -29,8 +29,7 @@ struct ovl_file *test_util_create_wave_file(NATIVE_CHAR const *const filepath,
                                             size_t const channels,
                                             size_t const sample_rate) {
   struct ovl_file *file = NULL;
-  error err = ovl_file_create(filepath, &file);
-  if (efailed(err)) {
+  if (!ovl_file_create(filepath, &file, NULL)) {
     return NULL;
   }
   size_t const bytes = samples * channels * sizeof(int16_t);
@@ -70,8 +69,11 @@ struct ovl_file *test_util_create_wave_file(NATIVE_CHAR const *const filepath,
       .data_bytes = (uint32_t)bytes,
   };
 
-  err = ovl_file_write(file, &hdr, sizeof(struct wave_header), &written);
-  if (efailed(err) || written != sizeof(struct wave_header)) {
+  if (!ovl_file_write(file, &hdr, sizeof(struct wave_header), &written, NULL)) {
+    ovl_file_close(file);
+    return NULL;
+  }
+  if (written != sizeof(struct wave_header)) {
     ovl_file_close(file);
     return NULL;
   }
@@ -90,8 +92,10 @@ bool test_util_write_wave_body_i16(struct ovl_file *file,
                                    size_t const channels) {
   size_t written = 0;
   size_t to_write = samples * channels * sizeof(int16_t);
-  error err = ovl_file_write(file, data, to_write, &written);
-  if (efailed(err) || written != to_write) {
+  if (!ovl_file_write(file, data, to_write, &written, NULL)) {
+    return false;
+  }
+  if (written != to_write) {
     return false;
   }
   return true;
@@ -120,8 +124,10 @@ bool test_util_write_wave_body_float(struct ovl_file *file,
       }
     }
     size_t block_bytes = block * channels * sizeof(int16_t);
-    error err = ovl_file_write(file, buf, block_bytes, &written);
-    if (efailed(err) || written != block_bytes) {
+    if (!ovl_file_write(file, buf, block_bytes, &written, NULL)) {
+      return false;
+    }
+    if (written != block_bytes) {
       return false;
     }
     done += block;
@@ -152,8 +158,12 @@ bool test_util_write_wave_body_double(struct ovl_file *file,
       }
     }
     size_t block_bytes = block * channels * sizeof(int16_t);
-    error err = ovl_file_write(file, buf, block_bytes, &written);
-    if (efailed(err) || written != block_bytes) {
+    struct ov_error err = {0};
+    if (!ovl_file_write(file, buf, block_bytes, &written, &err)) {
+      OV_ERROR_REPORT(&err, NULL);
+      return false;
+    }
+    if (written != block_bytes) {
       return false;
     }
     done += block;

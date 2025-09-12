@@ -15,7 +15,9 @@ struct ovl_audio_decoder;
  * @param dp Pointer to a location where the new context will be stored.
  * @return Error code.
  */
-NODISCARD error ovl_audio_decoder_bidi_create(struct ovl_audio_decoder *const source, struct ovl_audio_decoder **const dp);
+NODISCARD bool ovl_audio_decoder_bidi_create(struct ovl_audio_decoder *const source,
+                                             struct ovl_audio_decoder **const dp,
+                                             struct ov_error *const err);
 
 /**
  * @brief Sets the direction of the decoder_bidi.

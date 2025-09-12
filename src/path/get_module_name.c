@@ -7,18 +7,24 @@
 #  define WIN32_LEAN_AND_MEAN
 #  include <windows.h>
 
-NODISCARD error ovl_path_get_module_name(NATIVE_CHAR **const module_path, void *const hinst) {
+NODISCARD bool
+ovl_path_get_module_name(NATIVE_CHAR **const module_path, void *const hinst, struct ov_error *const err) {
+  if (!module_path) {
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_invalid_argument);
+    return false;
+  }
+
   DWORD n = 0, r;
-  error err = eok();
+  bool result = false;
+
   for (;;) {
-    err = OV_ARRAY_GROW(module_path, n += MAX_PATH);
-    if (efailed(err)) {
-      err = ethru(err);
+    if (!OV_ARRAY_GROW(module_path, n += MAX_PATH)) {
+      OV_ERROR_SET_GENERIC(err, ov_error_generic_out_of_memory);
       goto cleanup;
     }
     r = GetModuleFileNameW((HINSTANCE)hinst, *module_path, n);
     if (r == 0) {
-      err = errhr(HRESULT_FROM_WIN32(GetLastError()));
+      OV_ERROR_SET_HRESULT(err, HRESULT_FROM_WIN32(GetLastError()));
       goto cleanup;
     }
     if (r < n) {
@@ -26,8 +32,10 @@ NODISCARD error ovl_path_get_module_name(NATIVE_CHAR **const module_path, void *
       break;
     }
   }
+  result = true;
+
 cleanup:
-  return err;
+  return result;
 }
 
 #endif

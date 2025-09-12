@@ -1,12 +1,13 @@
 #include <ovl/audio/decoder/opus.h>
 
+#include "../tag.h"
+#include "../tag/vorbis_comment.h"
+
 #include <ovl/audio/decoder.h>
 #include <ovl/audio/info.h>
 #include <ovl/source.h>
 
-#include "../../i18n.h"
-#include "../tag.h"
-#include "../tag/vorbis_comment.h"
+#include <ovmo.h>
 
 #ifdef __GNUC__
 #  ifndef __has_warning
@@ -41,7 +42,7 @@ struct opus {
 };
 
 static int cb_read(void *const stream, unsigned char *const ptr, int const nbytes) {
-  struct opus *ctx = stream;
+  struct opus *ctx = (struct opus *)stream;
   size_t read = ovl_source_read(ctx->source, ptr, ctx->source_pos, (size_t)nbytes);
   if (read == SIZE_MAX) {
     return -1;
@@ -51,7 +52,7 @@ static int cb_read(void *const stream, unsigned char *const ptr, int const nbyte
 }
 
 static int cb_seek(void *const stream, opus_int64 const offset, int const whence) {
-  struct opus *ctx = stream;
+  struct opus *ctx = (struct opus *)stream;
   if (whence == SEEK_SET) {
     if (offset < 0 || (uint64_t)offset > ctx->source_len) {
       return -1;
@@ -80,7 +81,7 @@ static int cb_seek(void *const stream, opus_int64 const offset, int const whence
 }
 
 static opus_int64 cb_tell(void *const stream) {
-  struct opus *ctx = stream;
+  struct opus *ctx = (struct opus *)stream;
   if (ctx->source_len > (uint64_t)INT64_MAX || ctx->source_pos > ctx->source_len) {
     return -1;
   }
@@ -92,7 +93,7 @@ struct get_entry_ctx {
 };
 
 static size_t get_entry(void *const userdata, size_t const n, char const **const entry) {
-  struct get_entry_ctx *const ctx = userdata;
+  struct get_entry_ctx *const ctx = (struct get_entry_ctx *)userdata;
   if (n >= (size_t)ctx->vc->comments) {
     return 0;
   }
@@ -101,7 +102,7 @@ static size_t get_entry(void *const userdata, size_t const n, char const **const
 }
 
 static void destroy(struct ovl_audio_decoder **const dp) {
-  struct opus **const ctxp = (void *)dp;
+  struct opus **const ctxp = (struct opus **)(void *)dp;
   if (!ctxp || !*ctxp) {
     return;
   }
@@ -111,19 +112,19 @@ static void destroy(struct ovl_audio_decoder **const dp) {
   }
   ovl_audio_tag_destroy(&ctx->info.tag);
   if (ctx->buf) {
-    ereport(mem_aligned_free(&ctx->buf));
+    OV_ALIGNED_FREE(&ctx->buf);
   }
   if (ctx->pcm) {
     if (ctx->pcm[0]) {
-      ereport(mem_aligned_free(&ctx->pcm[0]));
+      OV_ALIGNED_FREE(&ctx->pcm[0]);
     }
-    ereport(mem_free(&ctx->pcm));
+    OV_FREE(&ctx->pcm);
   }
-  ereport(mem_free(dp));
+  OV_FREE(dp);
 }
 
 static struct ovl_audio_info const *get_info(struct ovl_audio_decoder const *const d) {
-  struct opus const *const ctx = (void const *)d;
+  struct opus const *const ctx = (struct opus const *)(void const *)d;
   if (!ctx) {
     return NULL;
   }
@@ -142,17 +143,17 @@ static inline float conv_int16_to_float(int16_t const v) {
 }
 
 static inline void int16_to_float_1ch(int16_t const *const src, float *const *const dst, size_t const samples) {
-  int16_t const *const s = ASSUME_ALIGNED_16(src);
-  float *const d = ASSUME_ALIGNED_16(dst[0]);
+  int16_t const *const s = (int16_t const *)ASSUME_ALIGNED_16(src);
+  float *const d = (float *)ASSUME_ALIGNED_16(dst[0]);
   for (size_t i = 0; i < samples; ++i) {
     d[i] = conv_int16_to_float(s[i]);
   }
 }
 
 static inline void int16_to_float_2ch(int16_t const *const src, float *const *const dst, size_t const samples) {
-  int16_t const *const s = ASSUME_ALIGNED_16(src);
-  float *const dl = ASSUME_ALIGNED_16(dst[0]);
-  float *const dr = ASSUME_ALIGNED_16(dst[1]);
+  int16_t const *const s = (int16_t const *)ASSUME_ALIGNED_16(src);
+  float *const dl = (float *)ASSUME_ALIGNED_16(dst[0]);
+  float *const dr = (float *)ASSUME_ALIGNED_16(dst[1]);
   for (size_t i = 0; i < samples; ++i) {
     dl[i] = conv_int16_to_float(s[i * 2]);
     dr[i] = conv_int16_to_float(s[i * 2 + 1]);
@@ -161,7 +162,7 @@ static inline void int16_to_float_2ch(int16_t const *const src, float *const *co
 
 static inline void
 int16_to_float_multi(int16_t const *const src, float *const *const dst, size_t const channels, size_t const samples) {
-  int16_t const *const s = ASSUME_ALIGNED_16(src);
+  int16_t const *const s = (int16_t const *)ASSUME_ALIGNED_16(src);
   for (size_t i = 0; i < samples; i++) {
     for (size_t c = 0; c < channels; c++) {
       dst[c][i] = conv_int16_to_float(*(s + i * channels + c));
@@ -180,10 +181,14 @@ int16_to_float(int16_t const *const src, float *const *const dst, size_t const c
   }
 }
 
-static NODISCARD error read(struct ovl_audio_decoder *const d, float const *const **const pcm, size_t *const samples) {
-  struct opus *const ctx = (void *)d;
+static NODISCARD bool read(struct ovl_audio_decoder *const d,
+                           float const *const **const pcm,
+                           size_t *const samples,
+                           struct ov_error *const err) {
+  struct opus *const ctx = (struct opus *)(void *)d;
   if (!ctx || !pcm || !samples) {
-    return errg(err_invalid_arugment);
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_invalid_argument);
+    return false;
   }
   // OpusFile has op_read_float that can get data in float format,
   // but this function internally converts data obtained in int16 to float.
@@ -191,122 +196,137 @@ static NODISCARD error read(struct ovl_audio_decoder *const d, float const *cons
   // so it is more efficient to convert to float at that timing.
   int const r = op_read(ctx->of, ctx->buf, (int)(chunk_samples * ctx->info.channels), NULL);
   if (r < 0) {
-    return emsg_i18nf(err_type_generic, err_fail, NULL, gettext("Failed to read samples.(code:%d)"), r);
+    OV_ERROR_SETF(
+        err, ov_error_type_generic, ov_error_generic_fail, "%1$d", gettext("Failed to read samples.(code:%1$d)"), r);
+    return false;
   }
   int16_to_float(ctx->buf, ctx->pcm, ctx->info.channels, (size_t)r);
-  *pcm = ov_deconster_(ctx->pcm);
+  *pcm = (float const *const *)ov_deconster_(ctx->pcm);
   *samples = (size_t)r;
-  return eok();
+  return true;
 }
 
-static NODISCARD error seek(struct ovl_audio_decoder *const d, uint64_t const position) {
-  struct opus *const ctx = (void *)d;
+static NODISCARD bool seek(struct ovl_audio_decoder *const d, uint64_t const position, struct ov_error *const err) {
+  struct opus *const ctx = (struct opus *)(void *)d;
   if (!ctx) {
-    return errg(err_invalid_arugment);
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_invalid_argument);
+    return false;
   }
   int const ret = op_pcm_seek(ctx->of, (ogg_int64_t)position);
   if (ret != 0) {
-    return emsg_i18nf(err_type_generic, err_fail, NULL, gettext("Failed to seek.(code:%d)"), ret);
+    OV_ERROR_SETF(
+        err, ov_error_type_generic, ov_error_generic_fail, "%1$d", gettext("Failed to seek.(code:%1$d)"), ret);
+    return false;
   }
-  return eok();
+  return true;
 }
 
-NODISCARD error ovl_audio_decoder_opus_create(struct ovl_source *const source, struct ovl_audio_decoder **const dp) {
+NODISCARD bool ovl_audio_decoder_opus_create(struct ovl_source *const source,
+                                             struct ovl_audio_decoder **const dp,
+                                             struct ov_error *const err) {
   if (!dp || !source) {
-    return errg(err_invalid_arugment);
+    OV_ERROR_SET_GENERIC(err, ov_error_generic_invalid_argument);
+    return false;
   }
   struct opus *ctx = NULL;
-  error err = mem(&ctx, 1, sizeof(*ctx));
-  if (efailed(err)) {
-    err = ethru(err);
-    goto cleanup;
-  }
-  static struct ovl_audio_decoder_vtable const vtable = {
-      .destroy = destroy,
-      .get_info = get_info,
-      .read = read,
-      .seek = seek,
-  };
-  *ctx = (struct opus){
-      .vtable = &vtable,
-      .source = source,
-      .source_len = ovl_source_size(source),
-      .info =
-          {
-              .tag =
-                  {
-                      .loop_start = UINT64_MAX,
-                      .loop_end = UINT64_MAX,
-                      .loop_length = UINT64_MAX,
-                  },
-          },
-  };
-  if (ctx->source_len == UINT64_MAX) {
-    err = emsg_i18n(err_type_generic, err_fail, gettext("Failed to get source size"));
-    goto cleanup;
-  }
-  int err_code = 0;
-  ctx->of = op_open_callbacks(ctx,
-                              (&(OpusFileCallbacks){
-                                  .read = cb_read,
-                                  .seek = cb_seek,
-                                  .tell = cb_tell,
-                                  .close = NULL,
-                              }),
-                              NULL,
-                              0,
-                              &err_code);
-  if (!ctx->of) {
-    err = emsg_i18nf(err_type_generic, err_fail, NULL, gettext("Failed to Opus file.(code:%d)"), err_code);
-    goto cleanup;
-  }
-  int const channels = op_channel_count(ctx->of, -1);
-  if (channels < 0) {
-    err = emsg_i18n(err_type_generic, err_fail, gettext("Failed to get channel count."));
-    goto cleanup;
-  }
-  ctx->info.channels = (size_t)channels;
-  ctx->info.sample_rate = 48000; // Opus is always 48kHz
-
-  ogg_int64_t const total = op_pcm_total(ctx->of, -1);
-  if (total < 0) {
-    err = emsg_i18n(err_type_generic, err_fail, gettext("Failed to get total samples."));
-    goto cleanup;
-  }
-  ctx->info.samples = (uint64_t)total;
-
-  OpusTags const *const vc = op_tags(ctx->of, -1);
-  if (vc) {
-    err =
-        ovl_audio_tag_vorbis_comment_read(&ctx->info.tag, (size_t)vc->comments, &(struct get_entry_ctx){vc}, get_entry);
-    if (efailed(err)) {
-      err = ethru(err);
+  bool result = false;
+  {
+    if (!OV_REALLOC(&ctx, 1, sizeof(*ctx))) {
+      OV_ERROR_SET_GENERIC(err, ov_error_generic_out_of_memory);
       goto cleanup;
     }
-  }
+    static struct ovl_audio_decoder_vtable const vtable = {
+        .destroy = destroy,
+        .get_info = get_info,
+        .read = read,
+        .seek = seek,
+    };
+    *ctx = (struct opus){
+        .vtable = &vtable,
+        .source = source,
+        .source_len = ovl_source_size(source),
+        .info =
+            {
+                .tag =
+                    {
+                        .loop_start = UINT64_MAX,
+                        .loop_end = UINT64_MAX,
+                        .loop_length = UINT64_MAX,
+                    },
+            },
+    };
+    if (ctx->source_len == UINT64_MAX) {
+      OV_ERROR_SET(err, ov_error_type_generic, ov_error_generic_fail, gettext("Failed to get source size"));
+      goto cleanup;
+    }
+    int err_code = 0;
+    ctx->of = op_open_callbacks(ctx,
+                                (&(OpusFileCallbacks){
+                                    .read = cb_read,
+                                    .seek = cb_seek,
+                                    .tell = cb_tell,
+                                    .close = NULL,
+                                }),
+                                NULL,
+                                0,
+                                &err_code);
+    if (!ctx->of) {
+      OV_ERROR_SETF(err,
+                    ov_error_type_generic,
+                    ov_error_generic_fail,
+                    "%1$d",
+                    gettext("Failed to Opus file.(code:%1$d)"),
+                    err_code);
+      goto cleanup;
+    }
+    int const channels = op_channel_count(ctx->of, -1);
+    if (channels < 0) {
+      OV_ERROR_SET(err, ov_error_type_generic, ov_error_generic_fail, gettext("Failed to get channel count."));
+      goto cleanup;
+    }
+    ctx->info.channels = (size_t)channels;
+    ctx->info.sample_rate = 48000; // Opus is always 48kHz
 
-  err = mem(&ctx->pcm, ctx->info.channels, sizeof(float *));
-  if (efailed(err)) {
-    err = ethru(err);
-    goto cleanup;
+    ogg_int64_t const total = op_pcm_total(ctx->of, -1);
+    if (total < 0) {
+      OV_ERROR_SET(err, ov_error_type_generic, ov_error_generic_fail, gettext("Failed to get total samples."));
+      goto cleanup;
+    }
+    ctx->info.samples = (uint64_t)total;
+
+    OpusTags const *const vc = op_tags(ctx->of, -1);
+    if (vc) {
+      if (!ovl_audio_tag_vorbis_comment_read(
+              &ctx->info.tag, (size_t)vc->comments, &(struct get_entry_ctx){vc}, get_entry, err)) {
+        OV_ERROR_ADD_TRACE(err);
+        goto cleanup;
+      }
+    }
+
+    if (!OV_REALLOC(&ctx->pcm, ctx->info.channels, sizeof(float *))) {
+      OV_ERROR_SET_GENERIC(err, ov_error_generic_out_of_memory);
+      goto cleanup;
+    }
+    ctx->pcm[0] = NULL;
+    if (!OV_ALIGNED_ALLOC(&ctx->pcm[0], chunk_samples * ctx->info.channels, sizeof(float), 16)) {
+      OV_ERROR_SET_GENERIC(err, ov_error_generic_out_of_memory);
+      goto cleanup;
+    }
+    for (size_t ch = 1; ch < ctx->info.channels; ++ch) {
+      ctx->pcm[ch] = ctx->pcm[0] + chunk_samples * ch;
+    }
+    if (!OV_ALIGNED_ALLOC(&ctx->buf, chunk_samples * ctx->info.channels, sizeof(int16_t), 16)) {
+      OV_ERROR_SET_GENERIC(err, ov_error_generic_out_of_memory);
+      goto cleanup;
+    }
+    *dp = (struct ovl_audio_decoder *)(void *)ctx;
   }
-  ctx->pcm[0] = NULL;
-  err = mem_aligned_alloc(&ctx->pcm[0], chunk_samples * ctx->info.channels, sizeof(float), 16);
-  if (efailed(err)) {
-    err = ethru(err);
-    goto cleanup;
-  }
-  for (size_t ch = 1; ch < ctx->info.channels; ++ch) {
-    ctx->pcm[ch] = ctx->pcm[0] + chunk_samples * ch;
-  }
-  err = mem_aligned_alloc(&ctx->buf, chunk_samples * ctx->info.channels, sizeof(int16_t), 16);
-  *dp = (void *)ctx;
-  ctx = NULL;
+  result = true;
 cleanup:
-  if (efailed(err)) {
+  if (!result) {
     if (ctx) {
-      destroy((void *)&ctx);
+      destroy((struct ovl_audio_decoder **)(void *)&ctx);
     }
   }
-  return err;
+  return result;
 }

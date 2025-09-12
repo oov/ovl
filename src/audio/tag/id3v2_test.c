@@ -8,7 +8,7 @@ static void test_iso8859_1_to_utf8(void) {
   for (int i = 0; i < 256; i++) {
     input[i] = (uint8_t)i;
   }
-  size_t const len = iso8859_1_to_utf8((void *)input, 256, output, sizeof(output));
+  size_t const len = iso8859_1_to_utf8((char *)(void *)input, 256, output, sizeof(output));
   size_t j = 0;
   for (int i = 0; i < 256; i++) {
     if (i < 128) {

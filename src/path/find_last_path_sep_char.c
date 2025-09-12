@@ -1,4 +1,5 @@
 #include <ovl/path.h>
+#include <string.h>
 
 char const *ovl_path_find_last_path_sep_char_const(char const *const path) {
   char const *sep = strrchr(path, '\\');
@@ -9,5 +10,5 @@ char const *ovl_path_find_last_path_sep_char_const(char const *const path) {
 }
 
 char *ovl_path_find_last_path_sep_char_mut(char *const path) {
-  return ov_deconster_(ovl_path_find_last_path_sep_char_const(path));
+  return (char *)ov_deconster_(ovl_path_find_last_path_sep_char_const(path));
 }
