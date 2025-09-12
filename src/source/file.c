@@ -22,8 +22,24 @@ static void destroy(struct ovl_source **const sp) {
   OV_FREE(sp);
 }
 
+static inline struct source_file *get_sf(struct ovl_source *const s) {
+#ifdef __GNUC__
+#  ifndef __has_warning
+#    define __has_warning(x) 0
+#  endif
+#  pragma GCC diagnostic push
+#  if __has_warning("-Wcast-align")
+#    pragma GCC diagnostic ignored "-Wcast-align"
+#  endif
+#endif                            // __GNUC__
+  return (struct source_file *)s; // safe
+#ifdef __GNUC__
+#  pragma GCC diagnostic pop
+#endif // __GNUC__
+}
+
 static size_t read(struct ovl_source *const s, void *const p, uint64_t const offset, size_t const len) {
-  struct source_file *const sf = (struct source_file *)s;
+  struct source_file *const sf = get_sf(s);
   if (!sf || !sf->file || offset > INT64_MAX || len == SIZE_MAX) {
     return SIZE_MAX;
   }
@@ -61,7 +77,7 @@ cleanup:
 }
 
 static uint64_t size(struct ovl_source *const s) {
-  struct source_file *const sf = (struct source_file *)s;
+  struct source_file *const sf = get_sf(s);
   if (!sf || !sf->file) {
     return UINT64_MAX;
   }
