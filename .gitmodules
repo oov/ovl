@@ -22,3 +22,6 @@
 [submodule "3rd/minimp3"]
 	path = src/3rd/minimp3
 	url = https://github.com/lieff/minimp3
+[submodule "src/3rd/c25519"]
+	path = src/3rd/c25519
+	url = https://github.com/oov/c25519

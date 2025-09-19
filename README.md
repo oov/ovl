@@ -38,6 +38,28 @@ IN THE SOFTWARE.
 ```
 </details>
 
+### [c25519](https://www.dlbeer.co.nz/oss/c25519.html)
+
+<details>
+<summary>Public Domain</summary>
+
+```
+This entire package is in the public domain.
+
+Curve25519 and Ed25519 for low-memory systems
+Daniel Beer <dlbeer@gmail.com>
+
+This package contains portable public-domain implementations of Daniel
+J. Bernstein's Curve25519 Diffie-Hellman function, and of the
+Ed25519 signature system. The memory consumption is low enough that
+they could be reasonably considered for most microcontroller
+applications.
+
+All functions are implemented in a way which yields constant execution
+time with respect to secret data.
+```
+</details>
+
 ### [FLAC](https://xiph.org/flac/)
 
 <details>

@@ -49,9 +49,24 @@ target_compile_options(FLAC PRIVATE -O3)
 
 # 3rd/minimp3
 add_library(minimp3 INTERFACE)
-target_include_directories(minimp3 INTERFACE 
+target_include_directories(minimp3 INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/3rd/minimp3>
 )
+
+# 3rd/c25519
+add_library(c25519 STATIC
+  3rd/c25519/src/c25519.c
+  3rd/c25519/src/edsign.c
+  3rd/c25519/src/ed25519.c
+  3rd/c25519/src/f25519.c
+  3rd/c25519/src/fprime.c
+  3rd/c25519/src/morph25519.c
+  3rd/c25519/src/sha512.c
+)
+target_include_directories(c25519 PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/3rd/c25519/src>
+)
+target_compile_options(c25519 PRIVATE -O3)
 
 set(is_clang "$<C_COMPILER_ID:Clang>")
 set(v16_or_later "$<VERSION_GREATER_EQUAL:$<C_COMPILER_VERSION>,16>")
@@ -119,6 +134,7 @@ target_link_libraries(ovl_intf INTERFACE
   opusfile
   FLAC
   minimp3
+  c25519
 )
 
 # Copy headers to build directory
@@ -174,6 +190,10 @@ add_library(ovl STATIC
   audio/decoder/ogg.c
   audio/decoder/opus.c
   audio/decoder/wav.c
+
+  # Cryptography
+  crypto/sign.c
+  crypto/random.c
 
   # Test Utility
   test_util.c
@@ -262,6 +282,12 @@ list(APPEND tests test_ovl_decoder_bidi)
 add_executable(test_ovl_tag_id3v2 audio/tag/id3v2_test.c)
 list(APPEND tests test_ovl_tag_id3v2)
 
+add_executable(test_ovl_crypto_sign crypto/sign_test.c)
+list(APPEND tests test_ovl_crypto_sign)
+
+add_executable(test_ovl_crypto_random crypto/random_test.c)
+list(APPEND tests test_ovl_crypto_random)
+
 foreach(target ${tests})
   add_test(NAME ${target} COMMAND ${target})
   target_compile_definitions(${target}
@@ -282,5 +308,6 @@ foreach(target ${tests})
     opusfile
     FLAC
     minimp3
+    c25519
   )
 endforeach(target)
