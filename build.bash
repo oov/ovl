@@ -9,6 +9,7 @@ REBUILD=0
 SKIP_TESTS=0
 CMAKE_PRESET=release
 FORMAT_SOURCES=ON
+USE_ADDRESS_SANITIZER=OFF
 while [[ $# -gt 0 ]]; do
   case $1 in
     --no-install-tools)
@@ -29,6 +30,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     -s|--skip-tests)
       SKIP_TESTS=1
+      shift
+      ;;
+    --asan)
+      USE_ADDRESS_SANITIZER=ON
       shift
       ;;
     -*|--*)
@@ -59,6 +64,7 @@ if [ "${REBUILD}" -eq 1 ] || [ ! -e "${destdir}/CMakeCache.txt" ]; then
   rm -rf "${destdir}"
   cmake -S . -B "${destdir}" --preset "${CMAKE_PRESET}" \
     -DFORMAT_SOURCES="${FORMAT_SOURCES}" \
+    -DUSE_ADDRESS_SANITIZER="${USE_ADDRESS_SANITIZER}" \
     -DCMAKE_INSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}" \
     -DCMAKE_C_COMPILER="${CMAKE_C_COMPILER}" \
     -DCMAKE_TOOLCHAIN_FILE="${CMAKE_TOOL_CHANIN_FILE}"
