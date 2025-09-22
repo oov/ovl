@@ -94,7 +94,7 @@ static void test_ovl_crypto_sign_verify_wrong_message(void) {
 
   TEST_CHECK(ovl_crypto_sign_generate_keypair(public_key, secret_key, &err));
 
-  uint8_t const message1[] = "Hello, Ed25519!";
+  uint8_t const message1[] = "Hello, sign!";
   uint8_t const message2[] = "Hello, World!";
   size_t const message_bytes = sizeof(message1) - 1;
 
