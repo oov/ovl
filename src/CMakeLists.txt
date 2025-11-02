@@ -89,7 +89,7 @@ if (NOT TARGET ovbase) # if ovbase is not added in the parent project
     FetchContent_Declare(
       ovbase
       GIT_REPOSITORY https://github.com/oov/ovbase
-      GIT_TAG        40bebf60de3b0a3a2b1aeeea6e52c8eb53f7140a
+      GIT_TAG        c94a74abf878575a9b825f5939254c401b9a8180
     )
     FetchContent_MakeAvailable(ovbase)
   endif()

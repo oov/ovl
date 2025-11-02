@@ -49,7 +49,7 @@ done
 if [ "${INSTALL_TOOLS}" -eq 1 ]; then
   mkdir -p "build/tools"
   if [ ! -e "${PWD}/build/tools/setup-llvm-mingw.sh" ]; then
-    curl -o "${PWD}/build/tools/setup-llvm-mingw.sh" -sOL https://raw.githubusercontent.com/oov/ovbase/219351252f1689c99b0dfdaeb4eed038a5fd58e0/setup-llvm-mingw.sh
+    curl -o "${PWD}/build/tools/setup-llvm-mingw.sh" -sOL https://raw.githubusercontent.com/oov/ovbase/c94a74abf878575a9b825f5939254c401b9a8180/setup-llvm-mingw.sh
   fi
   . "${PWD}/build/tools/setup-llvm-mingw.sh" --dir "${PWD}/build/tools"
 fi
