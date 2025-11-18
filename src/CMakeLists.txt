@@ -157,6 +157,7 @@ add_library(ovl STATIC
   # Dialogs
   dialog/select_file.c
   dialog/select_folder.c
+  dialog/save_file.c
 
   # File I/O
   file/close.c
