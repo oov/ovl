@@ -16,6 +16,7 @@
 NODISCARD bool ovl_dialog_select_folder(void *const hwnd,
                                         NATIVE_CHAR const *const title,
                                         void const *const client_id,
+                                        NATIVE_CHAR const *const default_path,
                                         NATIVE_CHAR **const path,
                                         struct ov_error *const err) {
   if (!path) {
@@ -25,6 +26,7 @@ NODISCARD bool ovl_dialog_select_folder(void *const hwnd,
 
   IFileDialog *pfd = NULL;
   IShellItem *psiResult = NULL;
+  IShellItem *psiDefaultFolder = NULL;
   PWSTR pszPath = NULL;
   bool result = false;
 
@@ -49,6 +51,19 @@ NODISCARD bool ovl_dialog_select_folder(void *const hwnd,
     OV_ERROR_SET_HRESULT(err, hr);
     goto cleanup;
   }
+
+  // Set default folder if provided
+  if (default_path) {
+    hr = SHCreateItemFromParsingName(default_path, NULL, &IID_IShellItem, (void **)&psiDefaultFolder);
+    if (SUCCEEDED(hr) && psiDefaultFolder) {
+      hr = IFileDialog_SetDefaultFolder(pfd, psiDefaultFolder);
+      if (FAILED(hr)) {
+        OV_ERROR_SET_HRESULT(err, hr);
+        goto cleanup;
+      }
+    }
+  }
+
   hr = IFileDialog_SetClientGuid(pfd, (const GUID *)client_id);
   if (FAILED(hr)) {
     OV_ERROR_SET_HRESULT(err, hr);
@@ -80,6 +95,10 @@ cleanup:
   if (pszPath) {
     CoTaskMemFree(pszPath);
     pszPath = NULL;
+  }
+  if (psiDefaultFolder) {
+    IShellItem_Release(psiDefaultFolder);
+    psiDefaultFolder = NULL;
   }
   if (psiResult) {
     IShellItem_Release(psiResult);
