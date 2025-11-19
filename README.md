@@ -60,6 +60,16 @@ time with respect to secret data.
 ```
 </details>
 
+### [cyrb64](https://github.com/bryc/code/blob/master/jshash/experimental/cyrb53.js)
+
+<details>
+<summary>Public Domain</summary>
+
+```
+Copyright 2018 bryc. Public domain.
+```
+</details>
+
 ### [FLAC](https://xiph.org/flac/)
 
 <details>
@@ -577,6 +587,18 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 </details>
 
+### [Ooura FFT](http://www.kurims.kyoto-u.ac.jp/~ooura/fft.html)
+
+<details>
+<summary>License</summary>
+
+```
+Copyright Takuya OOURA, 1996-2001
+
+You may use, copy, modify and distribute this code for any purpose (include commercial use) and without fee. Please refer to this package when you modify this code.
+```
+</details>
+
 ### [Opus](https://opus-codec.org/)
 
 <details>
@@ -655,6 +677,70 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ```
 </details>
 
+### [PFFFT](https://bitbucket.org/jpommier/pffft)
+
+<details>
+<summary>The 3-Clause BSD License</summary>
+
+```
+Copyright (c) 2013  Julien Pommier ( pommier@modartt.com ) 
+
+Based on original fortran 77 code from FFTPACKv4 from NETLIB,
+authored by Dr Paul Swarztrauber of NCAR, in 1985.
+
+As confirmed by the NCAR fftpack software curators, the following
+FFTPACKv5 license applies to FFTPACKv4 sources. My changes are
+released under the same terms.
+
+FFTPACK license:
+
+http://www.cisl.ucar.edu/css/software/fftpack5/ftpk.html
+
+Copyright (c) 2004 the University Corporation for Atmospheric
+Research ("UCAR"). All rights reserved. Developed by NCAR's
+Computational and Information Systems Laboratory, UCAR,
+www.cisl.ucar.edu.
+
+Redistribution and use of the Software in source and binary forms,
+with or without modification, is permitted provided that the
+following conditions are met:
+
+- Neither the names of NCAR's Computational and Information Systems
+Laboratory, the University Corporation for Atmospheric Research,
+nor the names of its sponsors or contributors may be used to
+endorse or promote products derived from this Software without
+specific prior written permission.  
+
+- Redistributions of source code must retain the above copyright
+notices, this list of conditions, and the disclaimer below.
+
+- Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions, and the disclaimer below in the
+documentation and/or other materials provided with the
+distribution.
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE CONTRIBUTORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE
+SOFTWARE.
+```
+</details>
+
+### [Quicksort](https://alienryderflex.com/quicksort/)
+
+<details>
+<summary>Public Domain</summary>
+
+```
+Algorithm adapted from Darel Rex Finley's public-domain "Quicksort" implementation.
+```
+</details>
+
 ### [r8brain-free-src](https://github.com/avaneev/r8brain-free-src)
 
 <details>
@@ -712,6 +798,20 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
+</details>
+
+### [SplitMix](https://xoshiro.di.unimi.it/splitmix64.c)
+
+<details>
+<summary>Public Domain</summary>
+
+```
+Copyright 2015 Sebastiano Vigna. Public Domain.
+
+SplitMix32:
+Copyright Public Domain (Unlicense)
+Author Chris Wellons (skeeto)
 ```
 </details>
 
@@ -782,5 +882,15 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+```
+</details>
+
+### [Xoshiro](https://prng.di.unimi.it/)
+
+<details>
+<summary>Public Domain</summary>
+
+```
+Copyright 2018 David Blackman and Sebastiano Vigna. Public Domain.
 ```
 </details>
