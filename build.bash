@@ -49,7 +49,8 @@ done
 if [ "${INSTALL_TOOLS}" -eq 1 ]; then
   mkdir -p "build/tools"
   if [ ! -e "${PWD}/build/tools/setup-llvm-mingw.sh" ]; then
-    curl -o "${PWD}/build/tools/setup-llvm-mingw.sh" -sOL https://raw.githubusercontent.com/oov/ovbase/2587ef97718e15f79dff9794a80ed830bb2495af/setup-llvm-mingw.sh
+    OVBASE_COMMIT_HASH=$(grep 'set(OVBASE_COMMIT_HASH' "${PWD}/src/CMakeLists.txt" | sed -E 's/.*"([^"]+)".*/\1/')
+    curl -o "${PWD}/build/tools/setup-llvm-mingw.sh" -sOL "https://raw.githubusercontent.com/oov/ovbase/${OVBASE_COMMIT_HASH}/setup-llvm-mingw.sh"
   fi
   . "${PWD}/build/tools/setup-llvm-mingw.sh" --dir "${PWD}/build/tools"
 fi
