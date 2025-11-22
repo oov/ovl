@@ -17,8 +17,6 @@ static void test_ovl_crypto_random(void) {
     }
   }
   TEST_CHECK(!all_zero);
-
-  OV_ERROR_DESTROY(&err);
 }
 
 static void test_ovl_crypto_random_null_args(void) {
@@ -37,8 +35,6 @@ static void test_ovl_crypto_random_zero_size(void) {
 
   TEST_CHECK(ovl_crypto_random(buffer, 0, &err));
   TEST_CHECK(err.stack[0].info.type == ov_error_type_invalid);
-
-  OV_ERROR_DESTROY(&err);
 }
 
 static void test_ovl_crypto_random_large_buffer(void) {
@@ -57,8 +53,6 @@ static void test_ovl_crypto_random_large_buffer(void) {
     }
   }
   TEST_CHECK(!all_zero);
-
-  OV_ERROR_DESTROY(&err);
 }
 
 TEST_LIST = {

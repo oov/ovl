@@ -27,8 +27,6 @@ static void test_ovl_crypto_sign_generate_keypair(void) {
 
   TEST_CHECK(!all_zero_public);
   TEST_CHECK(!all_zero_secret);
-
-  OV_ERROR_DESTROY(&err);
 }
 
 static void test_ovl_crypto_keypair_generate_null_args(void) {
@@ -60,8 +58,6 @@ static void test_ovl_crypto_sign_and_verify(void) {
 
   TEST_CHECK(ovl_crypto_sign(signature, message, message_bytes, secret_key, &err));
   TEST_CHECK(ovl_crypto_sign_verify(signature, message, message_bytes, public_key, &err));
-
-  OV_ERROR_DESTROY(&err);
 }
 
 static void test_ovl_crypto_sign_verify_wrong_key(void) {
@@ -170,8 +166,6 @@ static void test_ovl_crypto_sign_large_message(void) {
   TEST_CHECK(ovl_crypto_sign(signature, large_message, large_message_size, secret_key, &err));
 
   TEST_CHECK(ovl_crypto_sign_verify(signature, large_message, large_message_size, public_key, &err));
-
-  OV_ERROR_DESTROY(&err);
 }
 
 TEST_LIST = {
