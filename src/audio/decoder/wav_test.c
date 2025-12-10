@@ -28,15 +28,11 @@ static bool test_single_format(struct test_case const *const test) {
   bool success = false;
 
   {
-    if (!TEST_CHECK(ovl_source_file_create(test->input, &source, &err))) {
-      TEST_MSG("source_file_open failed for %ls", test->input);
-      OV_ERROR_ADD_TRACE(&err);
+    if (!TEST_SUCCEEDED(ovl_source_file_create(test->input, &source, &err), &err)) {
       goto cleanup;
     }
 
-    if (!TEST_CHECK(ovl_audio_decoder_wav_create(source, &d, &err))) {
-      TEST_MSG("decoder_create failed for %ls", test->input);
-      OV_ERROR_ADD_TRACE(&err);
+    if (!TEST_SUCCEEDED(ovl_audio_decoder_wav_create(source, &d, &err), &err)) {
       goto cleanup;
     }
 
@@ -59,8 +55,7 @@ static bool test_single_format(struct test_case const *const test) {
     float const *const *pcm = NULL;
     while (total_read < info->samples) {
       size_t read = 0;
-      if (!TEST_CHECK(ovl_audio_decoder_read(d, &pcm, &read, &err))) {
-        OV_ERROR_ADD_TRACE(&err);
+      if (!TEST_SUCCEEDED(ovl_audio_decoder_read(d, &pcm, &read, &err), &err)) {
         goto cleanup;
       }
       if (read == 0) {
@@ -73,8 +68,7 @@ static bool test_single_format(struct test_case const *const test) {
     }
 
     size_t final_read = 0;
-    if (!TEST_CHECK(ovl_audio_decoder_read(d, &pcm, &final_read, &err))) {
-      OV_ERROR_ADD_TRACE(&err);
+    if (!TEST_SUCCEEDED(ovl_audio_decoder_read(d, &pcm, &final_read, &err), &err)) {
       goto cleanup;
     }
     TEST_CHECK(final_read == 0);
@@ -85,9 +79,6 @@ static bool test_single_format(struct test_case const *const test) {
   }
   success = true;
 cleanup:
-  if (!success) {
-    OV_ERROR_REPORT(&err, NULL);
-  }
   if (file_out) {
     test_util_close_wave(file_out);
   }
@@ -106,13 +97,11 @@ static bool test_single_info(struct test_case const *const test) {
   struct ov_error err = {0};
   bool success = false;
   {
-    if (!TEST_CHECK(ovl_source_file_create(test->input, &source, &err))) {
-      OV_ERROR_ADD_TRACE(&err);
+    if (!TEST_SUCCEEDED(ovl_source_file_create(test->input, &source, &err), &err)) {
       goto cleanup;
     }
 
-    if (!TEST_CHECK(ovl_audio_decoder_wav_create(source, &d, &err))) {
-      OV_ERROR_ADD_TRACE(&err);
+    if (!TEST_SUCCEEDED(ovl_audio_decoder_wav_create(source, &d, &err), &err)) {
       goto cleanup;
     }
 
@@ -135,9 +124,6 @@ static bool test_single_info(struct test_case const *const test) {
   }
   success = true;
 cleanup:
-  if (!success) {
-    OV_ERROR_REPORT(&err, NULL);
-  }
   if (d) {
     ovl_audio_decoder_destroy(&d);
   }
@@ -176,21 +162,17 @@ static void seek(void) {
   struct ovl_audio_decoder *d = NULL;
   struct ovl_file *file_out = NULL;
   struct ov_error err = {0};
-  bool success = false;
 
   {
-    if (!TEST_CHECK(ovl_source_file_create(TESTDATADIR NSTR("/test-8khz-stereo-8.wav"), &source, &err))) {
-      OV_ERROR_ADD_TRACE(&err);
+    if (!TEST_SUCCEEDED(ovl_source_file_create(TESTDATADIR NSTR("/test-8khz-stereo-8.wav"), &source, &err), &err)) {
       goto cleanup;
     }
-    if (!TEST_CHECK(ovl_audio_decoder_wav_create(source, &d, &err))) {
-      OV_ERROR_ADD_TRACE(&err);
+    if (!TEST_SUCCEEDED(ovl_audio_decoder_wav_create(source, &d, &err), &err)) {
       goto cleanup;
     }
     struct ovl_audio_info const *info = ovl_audio_decoder_get_info(d);
     uint64_t half = info->samples / 2;
-    if (!TEST_CHECK(ovl_audio_decoder_seek(d, half, &err))) {
-      OV_ERROR_ADD_TRACE(&err);
+    if (!TEST_SUCCEEDED(ovl_audio_decoder_seek(d, half, &err), &err)) {
       goto cleanup;
     }
     file_out = test_util_create_wave_file(
@@ -203,8 +185,7 @@ static void seek(void) {
     uint64_t total_read = 0;
     while (total_read < (info->samples - half)) {
       size_t got = 0;
-      if (!TEST_CHECK(ovl_audio_decoder_read(d, &pcm, &got, &err))) {
-        OV_ERROR_ADD_TRACE(&err);
+      if (!TEST_SUCCEEDED(ovl_audio_decoder_read(d, &pcm, &got, &err), &err)) {
         goto cleanup;
       }
       if (got == 0) {
@@ -216,11 +197,7 @@ static void seek(void) {
     TEST_CHECK(total_read == (info->samples - half));
   }
 
-  success = true;
 cleanup:
-  if (!success) {
-    OV_ERROR_REPORT(&err, NULL);
-  }
   if (file_out) {
     test_util_close_wave(file_out);
   }

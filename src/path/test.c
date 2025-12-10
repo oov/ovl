@@ -9,8 +9,7 @@ static void test_file_create_temp(void) {
   struct ovl_file *file = NULL;
   wchar_t *path = NULL;
   struct ov_error err = {0};
-  if (!TEST_CHECK(ovl_file_create_temp(NSTR("test.txt"), &file, &path, &err))) {
-    OV_ERROR_DESTROY(&err);
+  if (!TEST_SUCCEEDED(ovl_file_create_temp(NSTR("test.txt"), &file, &path, &err), &err)) {
     goto cleanup;
   }
   TEST_CHECK(file != NULL);

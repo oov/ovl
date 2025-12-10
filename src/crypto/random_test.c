@@ -6,8 +6,7 @@ static void test_ovl_crypto_random(void) {
   unsigned char buffer[32];
   struct ov_error err = {0};
 
-  TEST_CHECK(ovl_crypto_random(buffer, sizeof(buffer), &err));
-  TEST_CHECK(err.stack[0].info.type == ov_error_type_invalid);
+  TEST_SUCCEEDED(ovl_crypto_random(buffer, sizeof(buffer), &err), &err);
 
   bool all_zero = true;
   for (size_t i = 0; i < sizeof(buffer); ++i) {
@@ -21,20 +20,14 @@ static void test_ovl_crypto_random(void) {
 
 static void test_ovl_crypto_random_null_args(void) {
   struct ov_error err = {0};
-
-  TEST_CHECK(!ovl_crypto_random(NULL, 32, &err));
-  TEST_CHECK(err.stack[0].info.type == ov_error_type_generic);
-  TEST_CHECK(err.stack[0].info.code == ov_error_generic_invalid_argument);
-
-  OV_ERROR_DESTROY(&err);
+  TEST_FAILED_WITH(ovl_crypto_random(NULL, 32, &err), &err, ov_error_type_generic, ov_error_generic_invalid_argument);
 }
 
 static void test_ovl_crypto_random_zero_size(void) {
   unsigned char buffer[1];
   struct ov_error err = {0};
 
-  TEST_CHECK(ovl_crypto_random(buffer, 0, &err));
-  TEST_CHECK(err.stack[0].info.type == ov_error_type_invalid);
+  TEST_SUCCEEDED(ovl_crypto_random(buffer, 0, &err), &err);
 }
 
 static void test_ovl_crypto_random_large_buffer(void) {
@@ -42,8 +35,7 @@ static void test_ovl_crypto_random_large_buffer(void) {
   unsigned char buffer[large_size];
   struct ov_error err = {0};
 
-  TEST_CHECK(ovl_crypto_random(buffer, sizeof(buffer), &err));
-  TEST_CHECK(err.stack[0].info.type == ov_error_type_invalid);
+  TEST_SUCCEEDED(ovl_crypto_random(buffer, sizeof(buffer), &err), &err);
 
   bool all_zero = true;
   for (size_t i = 0; i < sizeof(buffer); ++i) {

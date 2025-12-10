@@ -8,7 +8,7 @@ static void test_ovl_crypto_sign_generate_keypair(void) {
   uint8_t secret_key[ovl_crypto_sign_secretkey_size];
   struct ov_error err = {0};
 
-  TEST_CHECK(ovl_crypto_sign_generate_keypair(public_key, secret_key, &err));
+  TEST_SUCCEEDED(ovl_crypto_sign_generate_keypair(public_key, secret_key, &err), &err);
 
   bool all_zero_public = true;
   bool all_zero_secret = true;
@@ -34,14 +34,15 @@ static void test_ovl_crypto_keypair_generate_null_args(void) {
   uint8_t secret_key[ovl_crypto_sign_secretkey_size];
   struct ov_error err = {0};
 
-  TEST_CHECK(!ovl_crypto_sign_generate_keypair(NULL, secret_key, &err));
-  TEST_CHECK(ov_error_is(&err, ov_error_type_generic, ov_error_generic_invalid_argument));
-  OV_ERROR_DESTROY(&err);
+  TEST_FAILED_WITH(ovl_crypto_sign_generate_keypair(NULL, secret_key, &err),
+                   &err,
+                   ov_error_type_generic,
+                   ov_error_generic_invalid_argument);
 
-  TEST_CHECK(!ovl_crypto_sign_generate_keypair(public_key, NULL, &err));
-  TEST_CHECK(ov_error_is(&err, ov_error_type_generic, ov_error_generic_invalid_argument));
-
-  OV_ERROR_DESTROY(&err);
+  TEST_FAILED_WITH(ovl_crypto_sign_generate_keypair(public_key, NULL, &err),
+                   &err,
+                   ov_error_type_generic,
+                   ov_error_generic_invalid_argument);
 }
 
 static void test_ovl_crypto_sign_and_verify(void) {
@@ -49,15 +50,15 @@ static void test_ovl_crypto_sign_and_verify(void) {
   uint8_t secret_key[ovl_crypto_sign_secretkey_size];
   struct ov_error err = {0};
 
-  TEST_CHECK(ovl_crypto_sign_generate_keypair(public_key, secret_key, &err));
+  TEST_SUCCEEDED(ovl_crypto_sign_generate_keypair(public_key, secret_key, &err), &err);
 
   uint8_t const message[] = "Hello, Ed25519!";
   size_t const message_bytes = sizeof(message) - 1;
 
   uint8_t signature[ovl_crypto_sign_signature_size];
 
-  TEST_CHECK(ovl_crypto_sign(signature, message, message_bytes, secret_key, &err));
-  TEST_CHECK(ovl_crypto_sign_verify(signature, message, message_bytes, public_key, &err));
+  TEST_SUCCEEDED(ovl_crypto_sign(signature, message, message_bytes, secret_key, &err), &err);
+  TEST_SUCCEEDED(ovl_crypto_sign_verify(signature, message, message_bytes, public_key, &err), &err);
 }
 
 static void test_ovl_crypto_sign_verify_wrong_key(void) {
@@ -67,20 +68,20 @@ static void test_ovl_crypto_sign_verify_wrong_key(void) {
   uint8_t secret_key2[ovl_crypto_sign_secretkey_size];
   struct ov_error err = {0};
 
-  TEST_CHECK(ovl_crypto_sign_generate_keypair(public_key1, secret_key1, &err));
-  TEST_CHECK(ovl_crypto_sign_generate_keypair(public_key2, secret_key2, &err));
+  TEST_SUCCEEDED(ovl_crypto_sign_generate_keypair(public_key1, secret_key1, &err), &err);
+  TEST_SUCCEEDED(ovl_crypto_sign_generate_keypair(public_key2, secret_key2, &err), &err);
 
   uint8_t const message[] = "Hello, Ed25519!";
   size_t const message_bytes = sizeof(message) - 1;
 
   uint8_t signature[ovl_crypto_sign_signature_size];
 
-  TEST_CHECK(ovl_crypto_sign(signature, message, message_bytes, secret_key1, &err));
+  TEST_SUCCEEDED(ovl_crypto_sign(signature, message, message_bytes, secret_key1, &err), &err);
 
-  TEST_CHECK(!ovl_crypto_sign_verify(signature, message, message_bytes, public_key2, &err));
-  TEST_CHECK(ov_error_is(&err, ov_error_type_generic, ov_error_generic_fail));
-
-  OV_ERROR_DESTROY(&err);
+  TEST_FAILED_WITH(ovl_crypto_sign_verify(signature, message, message_bytes, public_key2, &err),
+                   &err,
+                   ov_error_type_generic,
+                   ov_error_generic_fail);
 }
 
 static void test_ovl_crypto_sign_verify_wrong_message(void) {
@@ -88,7 +89,7 @@ static void test_ovl_crypto_sign_verify_wrong_message(void) {
   uint8_t secret_key[ovl_crypto_sign_secretkey_size];
   struct ov_error err = {0};
 
-  TEST_CHECK(ovl_crypto_sign_generate_keypair(public_key, secret_key, &err));
+  TEST_SUCCEEDED(ovl_crypto_sign_generate_keypair(public_key, secret_key, &err), &err);
 
   uint8_t const message1[] = "Hello, sign!";
   uint8_t const message2[] = "Hello, World!";
@@ -96,12 +97,12 @@ static void test_ovl_crypto_sign_verify_wrong_message(void) {
 
   uint8_t signature[ovl_crypto_sign_signature_size];
 
-  TEST_CHECK(ovl_crypto_sign(signature, message1, message_bytes, secret_key, &err));
+  TEST_SUCCEEDED(ovl_crypto_sign(signature, message1, message_bytes, secret_key, &err), &err);
 
-  TEST_CHECK(!ovl_crypto_sign_verify(signature, message2, message_bytes, public_key, &err));
-  TEST_CHECK(ov_error_is(&err, ov_error_type_generic, ov_error_generic_fail));
-
-  OV_ERROR_DESTROY(&err);
+  TEST_FAILED_WITH(ovl_crypto_sign_verify(signature, message2, message_bytes, public_key, &err),
+                   &err,
+                   ov_error_type_generic,
+                   ov_error_generic_fail);
 }
 
 static void test_ovl_crypto_sign_null_args(void) {
@@ -111,19 +112,22 @@ static void test_ovl_crypto_sign_null_args(void) {
   uint8_t signature[ovl_crypto_sign_signature_size];
   uint8_t const message[] = "test";
 
-  TEST_CHECK(ovl_crypto_sign_generate_keypair(public_key, secret_key, &err));
+  TEST_SUCCEEDED(ovl_crypto_sign_generate_keypair(public_key, secret_key, &err), &err);
 
-  TEST_CHECK(!ovl_crypto_sign(NULL, message, sizeof(message) - 1, secret_key, &err));
-  TEST_CHECK(ov_error_is(&err, ov_error_type_generic, ov_error_generic_invalid_argument));
-  OV_ERROR_DESTROY(&err);
+  TEST_FAILED_WITH(ovl_crypto_sign(NULL, message, sizeof(message) - 1, secret_key, &err),
+                   &err,
+                   ov_error_type_generic,
+                   ov_error_generic_invalid_argument);
 
-  TEST_CHECK(!ovl_crypto_sign(signature, NULL, sizeof(message) - 1, secret_key, &err));
-  TEST_CHECK(ov_error_is(&err, ov_error_type_generic, ov_error_generic_invalid_argument));
-  OV_ERROR_DESTROY(&err);
+  TEST_FAILED_WITH(ovl_crypto_sign(signature, NULL, sizeof(message) - 1, secret_key, &err),
+                   &err,
+                   ov_error_type_generic,
+                   ov_error_generic_invalid_argument);
 
-  TEST_CHECK(!ovl_crypto_sign(signature, message, sizeof(message) - 1, NULL, &err));
-  TEST_CHECK(ov_error_is(&err, ov_error_type_generic, ov_error_generic_invalid_argument));
-  OV_ERROR_DESTROY(&err);
+  TEST_FAILED_WITH(ovl_crypto_sign(signature, message, sizeof(message) - 1, NULL, &err),
+                   &err,
+                   ov_error_type_generic,
+                   ov_error_generic_invalid_argument);
 }
 
 static void test_ovl_crypto_verify_null_args(void) {
@@ -133,19 +137,22 @@ static void test_ovl_crypto_verify_null_args(void) {
   uint8_t signature[ovl_crypto_sign_signature_size];
   uint8_t const message[] = "test";
 
-  TEST_CHECK(ovl_crypto_sign_generate_keypair(public_key, secret_key, &err));
+  TEST_SUCCEEDED(ovl_crypto_sign_generate_keypair(public_key, secret_key, &err), &err);
 
-  TEST_CHECK(!ovl_crypto_sign_verify(NULL, message, sizeof(message) - 1, public_key, &err));
-  TEST_CHECK(ov_error_is(&err, ov_error_type_generic, ov_error_generic_invalid_argument));
-  OV_ERROR_DESTROY(&err);
+  TEST_FAILED_WITH(ovl_crypto_sign_verify(NULL, message, sizeof(message) - 1, public_key, &err),
+                   &err,
+                   ov_error_type_generic,
+                   ov_error_generic_invalid_argument);
 
-  TEST_CHECK(!ovl_crypto_sign_verify(signature, NULL, sizeof(message) - 1, public_key, &err));
-  TEST_CHECK(ov_error_is(&err, ov_error_type_generic, ov_error_generic_invalid_argument));
-  OV_ERROR_DESTROY(&err);
+  TEST_FAILED_WITH(ovl_crypto_sign_verify(signature, NULL, sizeof(message) - 1, public_key, &err),
+                   &err,
+                   ov_error_type_generic,
+                   ov_error_generic_invalid_argument);
 
-  TEST_CHECK(!ovl_crypto_sign_verify(signature, message, sizeof(message) - 1, NULL, &err));
-  TEST_CHECK(ov_error_is(&err, ov_error_type_generic, ov_error_generic_invalid_argument));
-  OV_ERROR_DESTROY(&err);
+  TEST_FAILED_WITH(ovl_crypto_sign_verify(signature, message, sizeof(message) - 1, NULL, &err),
+                   &err,
+                   ov_error_type_generic,
+                   ov_error_generic_invalid_argument);
 }
 
 static void test_ovl_crypto_sign_large_message(void) {
@@ -153,7 +160,7 @@ static void test_ovl_crypto_sign_large_message(void) {
   uint8_t secret_key[ovl_crypto_sign_secretkey_size];
   struct ov_error err = {0};
 
-  TEST_CHECK(ovl_crypto_sign_generate_keypair(public_key, secret_key, &err));
+  TEST_SUCCEEDED(ovl_crypto_sign_generate_keypair(public_key, secret_key, &err), &err);
 
   enum { large_message_size = 10000 };
   uint8_t large_message[large_message_size];
@@ -163,9 +170,9 @@ static void test_ovl_crypto_sign_large_message(void) {
 
   uint8_t signature[ovl_crypto_sign_signature_size];
 
-  TEST_CHECK(ovl_crypto_sign(signature, large_message, large_message_size, secret_key, &err));
+  TEST_SUCCEEDED(ovl_crypto_sign(signature, large_message, large_message_size, secret_key, &err), &err);
 
-  TEST_CHECK(ovl_crypto_sign_verify(signature, large_message, large_message_size, public_key, &err));
+  TEST_SUCCEEDED(ovl_crypto_sign_verify(signature, large_message, large_message_size, public_key, &err), &err);
 }
 
 TEST_LIST = {

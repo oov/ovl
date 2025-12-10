@@ -170,7 +170,6 @@ static void all(void) {
   struct ovl_file *file_golden = NULL;
   struct ovl_file *file_all = NULL;
   struct ov_error err = {0};
-  bool success = false;
 
   audio = decoder_all(TESTDATADIR NSTR("/test.opus"));
   if (!TEST_CHECK(audio.buffer)) {
@@ -187,12 +186,10 @@ static void all(void) {
     goto cleanup;
   }
 
-  if (!TEST_CHECK(ovl_source_file_create(TESTDATADIR NSTR("/test.opus"), &source, &err))) {
-    OV_ERROR_ADD_TRACE(&err);
+  if (!TEST_SUCCEEDED(ovl_source_file_create(TESTDATADIR NSTR("/test.opus"), &source, &err), &err)) {
     goto cleanup;
   }
-  if (!TEST_CHECK(ovl_audio_decoder_opus_create(source, &d, &err))) {
-    OV_ERROR_ADD_TRACE(&err);
+  if (!TEST_SUCCEEDED(ovl_audio_decoder_opus_create(source, &d, &err), &err)) {
     goto cleanup;
   }
   {
@@ -227,8 +224,7 @@ static void all(void) {
     struct test_util_wave_diff_count count = {0};
     while (pos < info->samples) {
       size_t read = 0;
-      if (!TEST_CHECK(ovl_audio_decoder_read(d, &pcm, &read, &err))) {
-        OV_ERROR_ADD_TRACE(&err);
+      if (!TEST_SUCCEEDED(ovl_audio_decoder_read(d, &pcm, &read, &err), &err)) {
         goto cleanup;
       }
       if (read == 0) {
@@ -245,8 +241,7 @@ static void all(void) {
 
     {
       size_t final_read = 0;
-      if (!TEST_CHECK(ovl_audio_decoder_read(d, &pcm, &final_read, &err))) {
-        OV_ERROR_ADD_TRACE(&err);
+      if (!TEST_SUCCEEDED(ovl_audio_decoder_read(d, &pcm, &final_read, &err), &err)) {
         goto cleanup;
       }
       TEST_CHECK(final_read == 0);
@@ -264,11 +259,7 @@ static void all(void) {
              (double)count.large_diff_count / (double)count.total_samples * 100.0);
   }
 
-  success = true;
 cleanup:
-  if (!success) {
-    OV_ERROR_REPORT(&err, NULL);
-  }
   if (file_golden) {
     test_util_close_wave(file_golden);
   }
@@ -294,18 +285,15 @@ static void seek(void) {
   struct ovl_file *file_golden = NULL;
   struct ovl_file *file_seek = NULL;
   struct ov_error err = {0};
-  bool success = false;
 
   audio = decoder_all(TESTDATADIR NSTR("/test.opus"));
   if (!TEST_CHECK(audio.buffer)) {
     goto cleanup;
   }
-  if (!TEST_CHECK(ovl_source_file_create(TESTDATADIR NSTR("/test.opus"), &source, &err))) {
-    OV_ERROR_ADD_TRACE(&err);
+  if (!TEST_SUCCEEDED(ovl_source_file_create(TESTDATADIR NSTR("/test.opus"), &source, &err), &err)) {
     goto cleanup;
   }
-  if (!TEST_CHECK(ovl_audio_decoder_opus_create(source, &d, &err))) {
-    OV_ERROR_ADD_TRACE(&err);
+  if (!TEST_SUCCEEDED(ovl_audio_decoder_opus_create(source, &d, &err), &err)) {
     goto cleanup;
   }
   {
@@ -325,8 +313,7 @@ static void seek(void) {
       goto cleanup;
     }
 
-    if (!TEST_CHECK(ovl_audio_decoder_seek(d, one_beat_samples, &err))) {
-      OV_ERROR_ADD_TRACE(&err);
+    if (!TEST_SUCCEEDED(ovl_audio_decoder_seek(d, one_beat_samples, &err), &err)) {
       goto cleanup;
     }
     file_seek = test_util_create_wave_file(
@@ -340,8 +327,7 @@ static void seek(void) {
     struct test_util_wave_diff_count count = {0};
     while (pos < info->samples) {
       size_t read = 0;
-      if (!TEST_CHECK(ovl_audio_decoder_read(d, &pcm, &read, &err))) {
-        OV_ERROR_ADD_TRACE(&err);
+      if (!TEST_SUCCEEDED(ovl_audio_decoder_read(d, &pcm, &read, &err), &err)) {
         goto cleanup;
       }
       if (read == 0) {
@@ -366,11 +352,7 @@ static void seek(void) {
     TEST_CHECK(pos == info->samples);
   }
 
-  success = true;
 cleanup:
-  if (!success) {
-    OV_ERROR_REPORT(&err, NULL);
-  }
   if (file_golden) {
     test_util_close_wave(file_golden);
   }
