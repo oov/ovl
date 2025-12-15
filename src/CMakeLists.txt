@@ -201,6 +201,12 @@ add_library(ovl STATIC
   crypto/sign.c
   crypto/random.c
 
+  # Time Utility
+  time/time_util.c
+  time/parse.c
+  time/format.c
+  time/now.c
+
   # Test Utility
   test_util.c
 )
@@ -266,6 +272,9 @@ list(APPEND tests test_ovl_path)
 
 add_executable(test_ovl_file file/test.c)
 list(APPEND tests test_ovl_file)
+
+add_executable(test_ovl_time time/test.c)
+list(APPEND tests test_ovl_time)
 
 add_executable(test_ovl_decoder_flac audio/decoder/flac_test.c)
 list(APPEND tests test_ovl_decoder_flac)
