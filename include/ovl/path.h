@@ -65,6 +65,14 @@ static inline wchar_t *ovl_path_extract_file_name_wchar_mut(wchar_t *const path)
   return ovl_path_extract_file_name_wchar(path);
 }
 
+/**
+ * @brief Find the file extension in a path string
+ *
+ * Searches for the last '.' in the file name.
+ *
+ * @param path Path string
+ * @return Pointer to the extension (including '.'), or NULL if not found
+ */
 #define ovl_path_find_ext(path)                                                                                        \
   _Generic((path),                                                                                                     \
       char const *: ovl_path_find_ext_char_const,                                                                      \
@@ -72,10 +80,15 @@ static inline wchar_t *ovl_path_extract_file_name_wchar_mut(wchar_t *const path)
       char *: ovl_path_find_ext_char_mut,                                                                              \
       wchar_t *: ovl_path_find_ext_wchar_mut)(path)
 
-char const *ovl_path_find_ext_char_const(char const *const path);
-wchar_t const *ovl_path_find_ext_wchar_const(wchar_t const *const path);
-char *ovl_path_find_ext_char_mut(char *const path);
-wchar_t *ovl_path_find_ext_wchar_mut(wchar_t *const path);
+char *ovl_path_find_ext_char(char const *const path);
+wchar_t *ovl_path_find_ext_wchar(wchar_t const *const path);
+
+static inline char const *ovl_path_find_ext_char_const(char const *const path) { return ovl_path_find_ext_char(path); }
+static inline char *ovl_path_find_ext_char_mut(char *const path) { return ovl_path_find_ext_char(path); }
+static inline wchar_t const *ovl_path_find_ext_wchar_const(wchar_t const *const path) {
+  return ovl_path_find_ext_wchar(path);
+}
+static inline wchar_t *ovl_path_find_ext_wchar_mut(wchar_t *const path) { return ovl_path_find_ext_wchar(path); }
 
 NODISCARD bool ovl_path_get_temp_directory(NATIVE_CHAR **const path, struct ov_error *const err);
 
