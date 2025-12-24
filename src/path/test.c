@@ -111,9 +111,32 @@ static void test_path_find_ext(void) {
   TEST_CHECK(ext7 == NULL);
 }
 
+static void test_path_is_same_ext(void) {
+  // wchar_t
+  TEST_CHECK(ovl_path_is_same_ext(L".TXT", L".txt") == true);
+  TEST_CHECK(ovl_path_is_same_ext(L".txt", L".TXT") == true);
+  TEST_CHECK(ovl_path_is_same_ext(L".doc", L".txt") == false);
+  TEST_CHECK(ovl_path_is_same_ext((wchar_t const *)NULL, L".txt") == false);
+  TEST_CHECK(ovl_path_is_same_ext(L".txt", (wchar_t const *)NULL) == false);
+  TEST_CHECK(ovl_path_is_same_ext(L".txt", L".txt") == true);
+  TEST_CHECK(ovl_path_is_same_ext(L".txt", L".tx") == false);
+  TEST_CHECK(ovl_path_is_same_ext(L".tx", L".txt") == false);
+
+  // char
+  TEST_CHECK(ovl_path_is_same_ext(".TXT", ".txt") == true);
+  TEST_CHECK(ovl_path_is_same_ext(".txt", ".TXT") == true);
+  TEST_CHECK(ovl_path_is_same_ext(".doc", ".txt") == false);
+  TEST_CHECK(ovl_path_is_same_ext((char const *)NULL, ".txt") == false);
+  TEST_CHECK(ovl_path_is_same_ext(".txt", (char const *)NULL) == false);
+  TEST_CHECK(ovl_path_is_same_ext(".txt", ".txt") == true);
+  TEST_CHECK(ovl_path_is_same_ext(".txt", ".tx") == false);
+  TEST_CHECK(ovl_path_is_same_ext(".tx", ".txt") == false);
+}
+
 TEST_LIST = {
     {"test_file_create_temp", test_file_create_temp},
     {"test_path_extract_file_name", test_path_extract_file_name},
     {"test_path_find_ext", test_path_find_ext},
+    {"test_path_is_same_ext", test_path_is_same_ext},
     {NULL, NULL},
 };

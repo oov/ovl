@@ -179,6 +179,8 @@ add_library(ovl STATIC
   # Path Utility
   path/extract_file_name_char.c
   path/extract_file_name_wchar.c
+  path/is_same_ext_char.c
+  path/is_same_ext_wchar.c
   path/find_ext_char.c
   path/find_ext_wchar.c
   path/find_last_path_sep_char.c

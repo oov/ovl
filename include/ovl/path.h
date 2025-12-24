@@ -90,6 +90,26 @@ static inline wchar_t const *ovl_path_find_ext_wchar_const(wchar_t const *const 
 }
 static inline wchar_t *ovl_path_find_ext_wchar_mut(wchar_t *const path) { return ovl_path_find_ext_wchar(path); }
 
+/**
+ * @brief Case-insensitive ASCII comparison for extension strings
+ *
+ * Compares two strings using case-insensitive ASCII comparison.
+ * Only ASCII characters (A-Z) are case-folded; other characters must match exactly.
+ *
+ * @param ext1 First extension string (e.g., ".txt" or pointer to extension in path)
+ * @param ext2 Second extension string to compare against
+ * @return true if strings match (case-insensitive), false otherwise
+ */
+#define ovl_path_is_same_ext(ext1, ext2)                                                                               \
+  _Generic((ext1),                                                                                                     \
+      char const *: ovl_path_is_same_ext_char,                                                                         \
+      wchar_t const *: ovl_path_is_same_ext_wchar,                                                                     \
+      char *: ovl_path_is_same_ext_char,                                                                               \
+      wchar_t *: ovl_path_is_same_ext_wchar)(ext1, ext2)
+
+bool ovl_path_is_same_ext_char(char const *const ext1, char const *const ext2);
+bool ovl_path_is_same_ext_wchar(wchar_t const *const ext1, wchar_t const *const ext2);
+
 NODISCARD bool ovl_path_get_temp_directory(NATIVE_CHAR **const path, struct ov_error *const err);
 
 NODISCARD bool ovl_path_get_module_name(NATIVE_CHAR **const module_path, void *const hinst, struct ov_error *const err);
