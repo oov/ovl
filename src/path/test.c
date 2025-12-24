@@ -37,8 +37,65 @@ static void test_path_extract_file_name(void) {
 #endif
 }
 
+static void test_path_find_ext(void) {
+  // Normal case: file with extension
+  NATIVE_CHAR const path1[] = NSTR("C:\\Users\\test\\hello_world.txt");
+  NATIVE_CHAR const *ext1 = ovl_path_find_ext(path1);
+  TEST_CHECK(ext1 != NULL);
+#ifdef WIN32
+  TEST_CHECK(wcscmp(ext1, L".txt") == 0);
+#else
+  TEST_CHECK(strcmp(ext1, ".txt") == 0);
+#endif
+
+  // Case with dot in directory name (should not falsely detect)
+  NATIVE_CHAR const path2[] = NSTR("/home/user/temp.dir/LICENSE");
+  NATIVE_CHAR const *ext2 = ovl_path_find_ext(path2);
+  TEST_CHECK(ext2 == NULL);
+
+  // Case with dot in directory name but file also has extension
+  NATIVE_CHAR const path3[] = NSTR("/home/user/temp.dir/readme.md");
+  NATIVE_CHAR const *ext3 = ovl_path_find_ext(path3);
+  TEST_CHECK(ext3 != NULL);
+#ifdef WIN32
+  TEST_CHECK(wcscmp(ext3, L".md") == 0);
+#else
+  TEST_CHECK(strcmp(ext3, ".md") == 0);
+#endif
+
+  // File starting with dot (hidden file in Unix)
+  NATIVE_CHAR const path4[] = NSTR("/home/user/.gitignore");
+  NATIVE_CHAR const *ext4 = ovl_path_find_ext(path4);
+  TEST_CHECK(ext4 != NULL);
+#ifdef WIN32
+  TEST_CHECK(wcscmp(ext4, L".gitignore") == 0);
+#else
+  TEST_CHECK(strcmp(ext4, ".gitignore") == 0);
+#endif
+
+  // Multiple dots in filename
+  NATIVE_CHAR const path5[] = NSTR("C:\\test\\file.tar.gz");
+  NATIVE_CHAR const *ext5 = ovl_path_find_ext(path5);
+  TEST_CHECK(ext5 != NULL);
+#ifdef WIN32
+  TEST_CHECK(wcscmp(ext5, L".gz") == 0);
+#else
+  TEST_CHECK(strcmp(ext5, ".gz") == 0);
+#endif
+
+  // No extension
+  NATIVE_CHAR const path6[] = NSTR("C:\\test\\Makefile");
+  NATIVE_CHAR const *ext6 = ovl_path_find_ext(path6);
+  TEST_CHECK(ext6 == NULL);
+
+  // NULL input
+  NATIVE_CHAR const *ext7 = ovl_path_find_ext((NATIVE_CHAR const *)NULL);
+  TEST_CHECK(ext7 == NULL);
+}
+
 TEST_LIST = {
     {"test_file_create_temp", test_file_create_temp},
     {"test_path_extract_file_name", test_path_extract_file_name},
+    {"test_path_find_ext", test_path_find_ext},
     {NULL, NULL},
 };
