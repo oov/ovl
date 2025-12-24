@@ -33,6 +33,15 @@ static inline wchar_t *ovl_path_find_last_path_sep_wchar_mut(wchar_t *const path
   return ovl_path_find_last_path_sep_wchar(path);
 }
 
+/**
+ * @brief Extract the file name from a path string
+ *
+ * Returns a pointer to the character following the last path separator.
+ * If no separator is found, returns the original path.
+ *
+ * @param path Path string
+ * @return Pointer to the file name part of the path
+ */
 #define ovl_path_extract_file_name(path)                                                                               \
   _Generic((path),                                                                                                     \
       char const *: ovl_path_extract_file_name_char_const,                                                             \
@@ -40,10 +49,21 @@ static inline wchar_t *ovl_path_find_last_path_sep_wchar_mut(wchar_t *const path
       char *: ovl_path_extract_file_name_char_mut,                                                                     \
       wchar_t *: ovl_path_extract_file_name_wchar_mut)(path)
 
-char const *ovl_path_extract_file_name_char_const(char const *const path);
-wchar_t const *ovl_path_extract_file_name_wchar_const(wchar_t const *const path);
-char *ovl_path_extract_file_name_char_mut(char *const path);
-wchar_t *ovl_path_extract_file_name_wchar_mut(wchar_t *const path);
+char *ovl_path_extract_file_name_char(char const *const path);
+wchar_t *ovl_path_extract_file_name_wchar(wchar_t const *const path);
+
+static inline char const *ovl_path_extract_file_name_char_const(char const *const path) {
+  return ovl_path_extract_file_name_char(path);
+}
+static inline char *ovl_path_extract_file_name_char_mut(char *const path) {
+  return ovl_path_extract_file_name_char(path);
+}
+static inline wchar_t const *ovl_path_extract_file_name_wchar_const(wchar_t const *const path) {
+  return ovl_path_extract_file_name_wchar(path);
+}
+static inline wchar_t *ovl_path_extract_file_name_wchar_mut(wchar_t *const path) {
+  return ovl_path_extract_file_name_wchar(path);
+}
 
 #define ovl_path_find_ext(path)                                                                                        \
   _Generic((path),                                                                                                     \
