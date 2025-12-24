@@ -2,6 +2,14 @@
 
 #include <ovbase.h>
 
+/**
+ * @brief Find the last path separator in a path string
+ *
+ * Searches for the last occurrence of '/' or '\' in the string.
+ *
+ * @param path Path string
+ * @return Pointer to the last separator, or NULL if not found
+ */
 #define ovl_path_find_last_path_sep(path)                                                                              \
   _Generic((path),                                                                                                     \
       char const *: ovl_path_find_last_path_sep_char_const,                                                            \
@@ -9,10 +17,21 @@
       char *: ovl_path_find_last_path_sep_char_mut,                                                                    \
       wchar_t *: ovl_path_find_last_path_sep_wchar_mut)(path)
 
-char const *ovl_path_find_last_path_sep_char_const(char const *const path);
-wchar_t const *ovl_path_find_last_path_sep_wchar_const(wchar_t const *const path);
-char *ovl_path_find_last_path_sep_char_mut(char *const path);
-wchar_t *ovl_path_find_last_path_sep_wchar_mut(wchar_t *const path);
+char *ovl_path_find_last_path_sep_char(char const *const path);
+wchar_t *ovl_path_find_last_path_sep_wchar(wchar_t const *const path);
+
+static inline char const *ovl_path_find_last_path_sep_char_const(char const *const path) {
+  return ovl_path_find_last_path_sep_char(path);
+}
+static inline char *ovl_path_find_last_path_sep_char_mut(char *const path) {
+  return ovl_path_find_last_path_sep_char(path);
+}
+static inline wchar_t const *ovl_path_find_last_path_sep_wchar_const(wchar_t const *const path) {
+  return ovl_path_find_last_path_sep_wchar(path);
+}
+static inline wchar_t *ovl_path_find_last_path_sep_wchar_mut(wchar_t *const path) {
+  return ovl_path_find_last_path_sep_wchar(path);
+}
 
 #define ovl_path_extract_file_name(path)                                                                               \
   _Generic((path),                                                                                                     \
