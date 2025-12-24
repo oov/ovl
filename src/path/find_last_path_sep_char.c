@@ -2,11 +2,15 @@
 #include <string.h>
 
 char const *ovl_path_find_last_path_sep_char_const(char const *const path) {
-  char const *sep = strrchr(path, '\\');
-  if (!sep) {
-    sep = strrchr(path, '/');
+  char const *sep1 = strrchr(path, L'\\');
+  char const *sep2 = strrchr(path, L'/');
+  if (!sep1) {
+    return sep2;
   }
-  return sep;
+  if (!sep2) {
+    return sep1;
+  }
+  return (sep1 > sep2) ? sep1 : sep2;
 }
 
 char *ovl_path_find_last_path_sep_char_mut(char *const path) {

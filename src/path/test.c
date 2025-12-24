@@ -29,12 +29,30 @@ cleanup:
 }
 
 static void test_path_extract_file_name(void) {
-  NATIVE_CHAR const path1[] = NSTR("C:\\Users\\test\\hello_world.txt");
+  {
+    NATIVE_CHAR const path[] = NSTR("C:\\Users\\test\\hello_world.txt");
 #ifdef WIN32
-  TEST_CHECK(ovl_path_extract_file_name(path1) == wcsrchr(path1, L'\\') + 1);
+    TEST_CHECK(ovl_path_extract_file_name(path) == wcsrchr(path, L'\\') + 1);
 #else
-  TEST_CHECK(ovl_path_extract_file_name(path1) == strrchr(path1, L'\\') + 1);
+    TEST_CHECK(ovl_path_extract_file_name(path) == strrchr(path, L'\\') + 1);
 #endif
+  }
+  {
+    char const path[] = "C:\\Users/test\\hello_world.txt";
+    TEST_CHECK(ovl_path_extract_file_name(path) == strrchr(path, '\\') + 1);
+  }
+  {
+    char const path[] = "C:\\Users\\test/hello_world.txt";
+    TEST_CHECK(ovl_path_extract_file_name(path) == strrchr(path, '/') + 1);
+  }
+  {
+    wchar_t const path[] = L"C:\\Users/test\\hello_world.txt";
+    TEST_CHECK(ovl_path_extract_file_name(path) == wcsrchr(path, L'\\') + 1);
+  }
+  {
+    wchar_t const path[] = L"C:\\Users\\test/hello_world.txt";
+    TEST_CHECK(ovl_path_extract_file_name(path) == wcsrchr(path, L'/') + 1);
+  }
 }
 
 static void test_path_find_ext(void) {
