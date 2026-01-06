@@ -17,6 +17,7 @@ NODISCARD bool ovl_dialog_save_file(void *const hwnd,
                                     NATIVE_CHAR const *const filter,
                                     void const *const client_id,
                                     NATIVE_CHAR const *const default_path,
+                                    NATIVE_CHAR const *const default_extension,
                                     NATIVE_CHAR **const path,
                                     struct ov_error *const err);
 
