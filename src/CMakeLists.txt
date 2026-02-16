@@ -86,7 +86,7 @@ include(FetchContent)
 if (NOT TARGET ovbase) # if ovbase is not added in the parent project
   find_package(ovbase QUIET)
   if (NOT ovbase_FOUND) # If ovbase is not installed
-    set(OVBASE_COMMIT_HASH "a79a60d60853cbdeffe24ce913234c34def35068")
+    set(OVBASE_COMMIT_HASH "d97da07e3614d42611ea8285ae20e87ac7ecaf5e")
     FetchContent_Declare(
       ovbase
       GIT_REPOSITORY https://github.com/oov/ovbase
